@@ -15,24 +15,67 @@ export default function MarketPulse({ onTokenClick }: MarketPulseProps) {
 
     // Mock Data for Demo (Stability)
     useEffect(() => {
-        // Simulated News
-        setNews([
-            "Bitcoin breaks $60k resistance level as ETFs see record inflow.",
-            "Vitalik Buterin proposes new gas fee structure for Ethereum L2s.",
-            "Solana network congestion eases after patch deployment.",
-            "BlackRock CEO says crypto is 'digital gold' in recent interview.",
-            "Regulatory clarity coming to US stablecoin market soon."
-        ]);
+        const fetchMarketData = async () => {
+            try {
+                // Fetch Prices
+                const ids = "bitcoin,ethereum,solana,pepe,dogwifhat,bonk";
+                const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`;
+                const res = await axios.get(url);
+                const data = res.data;
 
-        // Simulated Trending (Major Movers + Meme Coins)
-        setTrending([
-            { symbol: "BTC", price: "52,430.00", change: 2.1 },
-            { symbol: "ETH", price: "2,840.50", change: 1.8 },
-            { symbol: "SOL", price: "112.45", change: 5.2 },
-            { symbol: "PEPE", price: "0.0000012", change: 12.5 },
-            { symbol: "WIF", price: "0.35", change: -5.2 },
-            { symbol: "BONK", price: "0.000021", change: 8.4 },
-        ]);
+                const mappedTrending = [
+                    { symbol: "BTC", id: "bitcoin" },
+                    { symbol: "ETH", id: "ethereum" },
+                    { symbol: "SOL", id: "solana" },
+                    { symbol: "PEPE", id: "pepe" },
+                    { symbol: "WIF", id: "dogwifhat" },
+                    { symbol: "BONK", id: "bonk" },
+                ].map(coin => {
+                    const coinData = data[coin.id];
+                    return {
+                        symbol: coin.symbol,
+                        price: coinData ? coinData.usd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 }) : "---",
+                        change: coinData ? parseFloat(coinData.usd_24h_change.toFixed(2)) : 0
+                    };
+                });
+
+                setTrending(mappedTrending);
+            } catch (error) {
+                console.error("Failed to fetch prices, using fallback.", error);
+                // Fallback Mock Data
+                setTrending([
+                    { symbol: "BTC", price: "52,430.00", change: 2.1 },
+                    { symbol: "ETH", price: "2,840.50", change: 1.8 },
+                    { symbol: "SOL", price: "112.45", change: 5.2 },
+                    { symbol: "PEPE", price: "0.0000012", change: 12.5 },
+                    { symbol: "WIF", price: "0.35", change: -5.2 },
+                    { symbol: "BONK", price: "0.000021", change: 8.4 },
+                ]);
+            }
+        };
+
+        const fetchNews = async () => {
+            try {
+                const res = await axios.get('https://min-api.cryptocompare.com/data/v2/news/?lang=EN');
+                const newsData = res.data.Data.slice(0, 5).map((n: any) => n.title);
+                setNews(newsData);
+            } catch (error) {
+                console.error("Failed to fetch news", error);
+                setNews([
+                    "Bitcoin breaks $60k resistance level as ETFs see record inflow.",
+                    "Vitalik Buterin proposes new gas fee structure for Ethereum L2s.",
+                    "Solana network congestion eases after patch deployment.",
+                    "BlackRock CEO says crypto is 'digital gold'.",
+                    "Regulatory clarity coming to US stablecoin market."
+                ]);
+            }
+        };
+
+        fetchMarketData();
+        fetchNews();
+
+        const interval = setInterval(fetchMarketData, 45000); // Update prices every 45s
+        return () => clearInterval(interval);
     }, []);
 
     return (

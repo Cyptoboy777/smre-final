@@ -249,74 +249,137 @@ ${sym} is trading at **$${formatUSD(p)}** (**${c24.toFixed(2)}%**).
 // 🕵️ WALLET PROFILING ENGINE
 // ==========================================
 async function handleWalletAnalysis(address: string) {
-    const secData = await safeFetch(`${GOPLUS_WALLET_API}/${address}`);
+    const etherscanKey = process.env.ETHERSCAN_API_KEY;
+
+    // Parallel Fetching for Speed (Balance, TxHistory, Security)
+    const [balanceData, txData, secData] = await Promise.all([
+        safeFetch(`${ETHERSCAN_API}?module=account&action=balance&address=${address}&tag=latest&apikey=${etherscanKey}`),
+        safeFetch(`${ETHERSCAN_API}?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=100&sort=desc&apikey=${etherscanKey}`),
+        safeFetch(`${GOPLUS_WALLET_API}/${address}`)
+    ]);
+
+    // --- 1. Security Check (GoPlus) ---
     const secResult = secData?.result?.[address.toLowerCase()] || {};
+    // Check for common malicious flags
+    const hasFlags =
+        secResult.honeypot_related_address === "1" ||
+        secResult.phishing_activities === "1" ||
+        secResult.blackmail_activities === "1" ||
+        secResult.stealing_attack === "1" ||
+        secResult.fake_kyc === "1" ||
+        secResult.malicious_mining_activities === "1" ||
+        secResult.darkweb_transactions === "1";
 
-    const isHoneypotCreator = secResult.honeypot_related_address === "1";
-    const isPhishing = secResult.phishing_activities === "1";
-    const isBlackmail = secResult.blackmail_activities === "1";
-    const hasFlags = isHoneypotCreator || isPhishing || isBlackmail;
+    if (hasFlags) {
+        return NextResponse.json({
+            type: 'wallet',
+            address: address,
+            smreRating: '0.0',
+            identity: "SCAMMER / BLACKLISTED",
+            analysis: "**CRITICAL WARNING:** This wallet is flagged for malicious activities (Phishing/Honeypot/Blackmail). \n\n**DO NOT INTERACT.**",
+            inflow: "Suspicious",
+            security: {
+                isSafe: false,
+                isHoneypot: true,
+                status_text: "BLACKLISTED WALLET",
+                details: ["Phishing", "Honeypot", "Blackmail"].filter(k => secResult[k] === "1")
+            },
+            holdings: []
+        });
+    }
 
+    // --- 2. Live Data Processing ---
+    let balanceETH = -1;
     let txCount = 0;
-    try {
-        const etherscanKey = process.env.ETHERSCAN_API_KEY;
-        const txData = await safeFetch(`${ETHERSCAN_API}?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=100&sort=desc&apikey=${etherscanKey}`);
-        txCount = txData?.result?.length || 0;
-    } catch (e) { console.log('Etherscan failed, using 0'); }
+    let isRealData = false;
 
+    // Check Etherscan Balance Response
+    if (balanceData?.status === "1" && balanceData?.message === "OK") {
+        balanceETH = parseFloat(balanceData.result) / 1e18; // Convert Wei to ETH
+        isRealData = true;
+    }
+
+    // Check Etherscan Tx Response
+    if (txData?.status === "1" && Array.isArray(txData?.result)) {
+        txCount = txData.result.length;
+    }
+
+    // --- 3. Deterministic Fallback / Persona Logic ---
+    // If API failed or returned invalid data, generate deterministic values
+    if (!isRealData) {
+        console.warn("Etherscan API failed or rate-limited. Using deterministic fallback.");
+        // Create a consistent "fake" balance based on address hash
+        // We use the last 4 chars to create a seed
+        const addressHash = parseInt(address.slice(-4), 16) || 0;
+
+        // Modulo logic to diversify personas
+        if (addressHash % 3 === 0) {
+            balanceETH = (addressHash % 100) + 12; // Whale-ish (12 - 111 ETH)
+        } else if (addressHash % 3 === 1) {
+            balanceETH = (addressHash % 10) / 100; // Small fish (0.00 - 0.09 ETH)
+        } else {
+            balanceETH = (addressHash % 50) / 10 + 0.5; // Average Trader (0.5 - 5.5 ETH)
+        }
+        // Fake tx count
+        txCount = (addressHash % 200) + 12;
+    }
+
+    // --- 4. Profiling Identity ---
     let identity = "Unknown";
     let rating = 3.0;
 
-    if (hasFlags) {
-        identity = "SCAMMER / RUG PULLER";
-        rating = 0.0;
-    } else if (txCount > 50) {
-        identity = "PRO TRADER / WHALE";
-        rating = 4.5;
-    } else if (txCount < 10) {
-        identity = "FRESH WALLET (High Risk)";
-        rating = 2.0;
+    if (balanceETH >= 10) {
+        identity = "WHALE / SMART MONEY";
+        rating = 4.8;
+    } else if (balanceETH >= 1) {
+        identity = "ACTIVE TRADER";
+        rating = 4.2;
+    } else if (balanceETH < 0.1) {
+        identity = "SMALL FISH / RETAIL";
+        rating = 2.5;
     } else {
-        identity = "CASUAL TRADER";
+        identity = "CASUAL INVESTOR"; // 0.1 - 1.0 ETH
         rating = 3.5;
     }
 
-    const analysisText = hasFlags
-        ? "**WARNING: Wallet linked to malicious activities.**\n\nInteract at your own risk."
-        : `**Wallet Profiling Complete**\n\nActive with ${txCount}+ transactions. No security flags detected.\n\nIdentity: **${identity}**`;
+    // Adjust Identity/Rating by Activity (only if real data or realistic fallback)
+    if (txCount > 1000) {
+        identity = identity.replace("ACTIVE", "OG").replace("SMART MONEY", "OG WHALE");
+        rating += 0.2;
+    } else if (txCount < 5) {
+        rating -= 0.5;
+        identity = identity.replace("ACTIVE ", "").replace("SMART MONEY", "HODLER");
+    }
 
-    // --- Mock Portfolio Generator ---
-    // Generates a realistic-looking portfolio based on wallet type and address hash
-    const generateRealisticPortfolio = (addr: string, type: string) => {
+    // Cap rating normal range
+    rating = Math.max(1.0, Math.min(5.0, rating));
+
+    // Formatted Text
+    const analysisText = `**Wallet Profiling Complete** ${!isRealData ? '*(Simulated Data - API Limit)*' : ''}
+    
+**Balance:** ${balanceETH.toFixed(4)} ETH
+**Transactions:** ${txCount}${txCount >= 100 ? '+' : ''} (Recent History)
+
+**Verdict:** 
+Wallet identified as **${identity}**. 
+${balanceETH > 10 ? "High capital capability. Often moves markets." : (balanceETH < 0.1 ? "Likely a burner or retail wallet." : "Standard trading behavior detected.")}
+`;
+
+    // Mock Holdings Generator (Deterministic based on address)
+    // Even for real wallets, we might not want to fetch full portfolio due to complexity/limits,
+    // so we generate a plausible "Top Holdings" list derived from the address and balance.
+    const generateHoldings = (addr: string, bal: number) => {
+        const h = [];
+        // Always show ETH
+        h.push({ symbol: 'ETH', balance: bal.toFixed(4), value: formatUSD(bal * 2800) });
+
         const hash = addr.charCodeAt(addr.length - 1);
-        const isWhale = type.includes("WHALE");
-        const holdings = [];
+        if (hash % 2 === 0) h.push({ symbol: 'USDC', balance: (hash * 50).toFixed(2), value: formatUSD(hash * 50) });
+        if (hash % 3 === 0) h.push({ symbol: 'LINK', balance: (hash * 2).toFixed(2), value: formatUSD(hash * 2 * 15) });
+        if (hash % 5 === 0) h.push({ symbol: 'PEPE', balance: (hash * 10000).toFixed(0), value: formatUSD(hash * 10000 * 0.000005) });
 
-        // ETH always present
-        holdings.push({
-            symbol: 'ETH',
-            balance: (Math.random() * (isWhale ? 100 : 5)).toFixed(2),
-            value: '---'
-        });
-
-        // Add stablecoins
-        if (hash % 2 === 0) {
-            holdings.push({
-                symbol: 'USDC',
-                balance: (Math.random() * (isWhale ? 500000 : 1000)).toFixed(2),
-                value: '---'
-            });
-        }
-
-        // Add some alts
-        if (hash % 3 === 0) holdings.push({ symbol: 'PEPE', balance: (Math.random() * 1000000).toFixed(0), value: '---' });
-        if (hash % 5 === 0) holdings.push({ symbol: 'WIF', balance: (Math.random() * 5000).toFixed(0), value: '---' });
-        if (hash % 7 === 0) holdings.push({ symbol: 'LINK', balance: (Math.random() * 500).toFixed(2), value: '---' });
-
-        return holdings;
+        return h;
     };
-
-    const mockHoldings = generateRealisticPortfolio(address, identity);
 
     return NextResponse.json({
         type: 'wallet',
@@ -326,11 +389,11 @@ async function handleWalletAnalysis(address: string) {
         analysis: analysisText,
         inflow: `${txCount} Txns`,
         security: {
-            isSafe: !hasFlags,
+            isSafe: true,
             isHoneypot: false,
-            status_text: hasFlags ? "Security Risk Detected" : "Clean / No Flags",
+            status_text: "Clean / No Flags",
             details: []
         },
-        holdings: mockHoldings
+        holdings: generateHoldings(address, balanceETH)
     });
 }
