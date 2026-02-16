@@ -2,8 +2,6 @@
 
 ### *Top-Tier Institutional Crypto Intelligence for Retail Traders*
 
-![SMRE Demo](./public/og-image.png) <!-- Add a screenshot if available, or keep as placeholder -->
-
 ## 🚨 The Problem
 Retail traders are playing a rigged game. They lack the sophisticated data, whale alerts, and risk management tools that institutional investors use daily. They buy tops, panic sell bottoms, and get wrecked by "smart money."
 

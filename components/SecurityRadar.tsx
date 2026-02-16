@@ -11,7 +11,7 @@ interface SecurityRadarProps {
 export default function SecurityRadar({ data }: SecurityRadarProps) {
     if (!data) return null;
 
-    let chartData = [];
+    let chartData: any[] = [];
     // Strict Logic: Only tokens can be "Honeypots" in this context
     const isHoneypot = data.type === 'token' && data.security?.isHoneypot === true;
 
