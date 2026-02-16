@@ -10,6 +10,47 @@ import { Activity, Wallet, ShieldCheck, DollarSign } from 'lucide-react';
 
 export default function Home() {
   const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [inputQuery, setInputQuery] = useState(''); // Lifted state for SmartSearch input if needed, or just let SmartSearch handle its own input. 
+  // actually, SmartSearch manages its own input `query`. 
+  // But if I click a ticker, I might want to update the SmartSearch input? 
+  // The requirement says: "Auto-fill the input and trigger handleSearch".
+  // So likely I need to pass a way to set query to SmartSearch, OR key it to reset, OR just let it be separate.
+  // Ease of implementation: Use a key or just pass a ref? 
+  // Let's keep it simple: MarketPulse click triggers search, maybe fills input?
+  // If I want to update SmartSearch input from parent, I need to control it or expose a method.
+  // Controlling it is "React way".
+
+  // Revised approach:
+  // page.tsx:
+  // const [searchQuery, setSearchQuery] = useState('');
+  // const handleSearch = async (q: string) => { ... }
+  // <SmartSearch value={searchQuery} onChange={setSearchQuery} onSearch={handleSearch} />
+
+  // Let's implement that.
+
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const handleAnalysis = async (query: string) => {
+    if (!query?.trim()) return;
+
+    setLoading(true);
+    setData(null);
+    try {
+      const res = await fetch(`/api/analyze?query=${query}`);
+      const result = await res.json();
+      setData(result);
+    } catch (err) {
+      console.error("Search failed", err);
+      // We might want to pass error down or show a toast
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogoClick = () => {
+    window.location.reload();
+  };
 
   return (
     <main className="min-h-screen bg-black text-white p-4 md:p-8 relative overflow-hidden">
@@ -18,7 +59,11 @@ export default function Home() {
 
       {/* Header */}
       <header className="relative z-10 flex justify-between items-center mb-8 border-b border-white/10 pb-4">
-        <h1 className="text-3xl font-heading font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-600">
+        <h1
+          className="text-3xl font-heading font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-600 cursor-pointer hover:opacity-80 transition-opacity"
+          onClick={handleLogoClick}
+          title="Reset Dashboard"
+        >
           SMRE <span className="text-sm font-mono text-zinc-500 ml-2">v2.0 // SMART MONEY RESEARCH ENGINE</span>
         </h1>
         <div className="flex gap-4 text-xs font-mono text-zinc-500">
@@ -28,20 +73,34 @@ export default function Home() {
       </header>
 
       {/* Core Search */}
-      <SmartSearch onResult={setData} />
+      <SmartSearch
+        onSearch={handleAnalysis}
+        externalLoading={loading}
+        parentQuery={searchQuery}
+        setParentQuery={setSearchQuery}
+      />
 
       {/* Main Content Area */}
       <div className="relative z-10 max-w-7xl mx-auto">
 
         {/* If no data, show Market Pulse */}
-        {!data && (
+        {!data && !loading && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <MarketPulse />
+            <MarketPulse onTokenClick={(token) => {
+              setSearchQuery(token);
+              handleAnalysis(token);
+            }} />
           </motion.div>
         )}
 
+        {loading && (
+          <div className="flex justify-center items-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500"></div>
+          </div>
+        )}
+
         {/* Analysis Results */}
-        {data && (
+        {data && !loading && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
