@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import Groq from 'groq-sdk';
 
 // --- Configuration ---
 const DEXSCREENER_API = 'https://api.dexscreener.com/latest/dex/search';
@@ -7,8 +7,8 @@ const GOPLUS_TOKEN_API = 'https://api.gopluslabs.io/api/v1/token_security/1';
 const GOPLUS_WALLET_API = 'https://api.gopluslabs.io/api/v1/address_security';
 const ETHERSCAN_API = 'https://api.etherscan.io/api';
 
-// Initialize Gemini
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+// Initialize Groq
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || '' });
 
 // --- Helper: Safe Fetch ---
 async function safeFetch(url: string, options?: RequestInit) {
@@ -198,24 +198,46 @@ ${sym} is trading at **$${formatUSD(p)}** (**${c24.toFixed(2)}%**).
 
     let aiAnalysis = "";
 
-    // Attempt Gemini (One last try with latest model)
+    // Attempt Groq (Using llama3-70b-8192 for institutional-grade speed)
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" }); // Trying the specific stable version
-        const prompt = `Analyze ${symbol}. Price: ${price}, Change: ${change24h}%. Technicals: RSI ${rsi}. Format: Markdown. Be brief but expert.`;
+        const prompt = `Act as an institutional crypto researcher for a high-frequency trading desk. 
+Analyze the following asset: ${symbol} (${baseToken.name}). 
+
+Current Market Context:
+- Price: ${formatUSD(price)}
+- 24h Change: ${change24h.toFixed(2)}%
+- 24h Volume: ${formatNum(vol24h)}
+- Total Liquidity: ${formatUSD(liqUsd)}
+- Technicals: RSI is at ${rsi}, indicative of being ${rsi > 70 ? 'OVERBOUGHT' : (rsi < 30 ? 'OVERSOLD' : 'NEUTRAL')}.
+- Sentiment: ${sentiment}
+
+Task:
+Provide a concise, high-impact technical and fundamental analysis. 
+1. Use bullet points for "Bull Case" and "Bear Case".
+2. Assess orderbook stability and liquidity-to-volume ratio.
+3. Provide a final 'SMRE CONVICTION' score (1-10) with a brief rationale.
+
+Format: Markdown with bold headings. No fluff. Focus on actionable intelligence.`;
 
         // Timeout to prevent hanging
-        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 3000));
-        const apiPromise = model.generateContent(prompt);
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 4000));
+        const apiPromise = groq.chat.completions.create({
+            messages: [
+                { role: 'system', content: 'You are an elite crypto quantitative analyst providing concise, data-driven insights.' },
+                { role: 'user', content: prompt }
+            ],
+            model: 'llama3-70b-8192',
+        });
 
         const result: any = await Promise.race([apiPromise, timeoutPromise]);
-        if (result?.response) {
-            aiAnalysis = result.response.text();
+        if (result?.choices?.[0]?.message?.content) {
+            aiAnalysis = result.choices[0].message.content;
         }
     } catch (e) {
-        console.log("Gemini API unavailable, switching to Algo-Analyst.");
+        console.log("Groq API unavailable, switching to Algo-Analyst.", e);
     }
 
-    // Fallback if Gemini fails (which is likely given recent errors)
+    // Fallback if Groq fails
     if (!aiAnalysis) {
         aiAnalysis = generateDeterministicAnalysis(symbol, price, change24h, vol24h, liqUsd, rsi, m5, h1, h6);
     }

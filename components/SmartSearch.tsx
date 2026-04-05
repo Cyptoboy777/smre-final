@@ -59,9 +59,9 @@ export default function SmartSearch({ onSearch, externalLoading, parentQuery, se
                 transition={{ duration: 0.5 }}
                 className="relative group"
             >
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-yellow-600 to-yellow-400 rounded-lg blur opacity-30 group-hover:opacity-75 transition duration-1000 group-hover:duration-200"></div>
-                <div className="relative flex items-center bg-zinc-900 rounded-lg p-2 border border-zinc-700 shadow-2xl">
-                    <Search className="w-6 h-6 text-zinc-400 ml-3" />
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500 to-magenta-500 rounded-xl blur opacity-30 group-hover:opacity-60 transition duration-1000 group-hover:duration-200"></div>
+                <div className="relative flex items-center glass-panel rounded-xl p-2 border-white/10 shadow-2xl">
+                    <Search className="w-6 h-6 text-cyan-400 ml-3 drop-shadow-[0_0_5px_rgba(0,243,255,0.5)]" />
                     <input
                         type="text"
                         className="w-full bg-transparent text-white px-4 py-3 focus:outline-none placeholder-zinc-500 font-mono text-lg"
@@ -74,7 +74,7 @@ export default function SmartSearch({ onSearch, externalLoading, parentQuery, se
                     <button
                         type="submit"
                         disabled={externalLoading}
-                        className="bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-2 px-6 rounded-md transition-all flex items-center justify-center min-w-[120px]"
+                        className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold py-2 px-6 rounded-lg transition-all flex items-center justify-center min-w-[120px] shadow-[0_0_15px_rgba(0,102,255,0.5)] border border-cyan-400/50"
                     >
                         {externalLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'ANALYZE'}
                     </button>
@@ -83,17 +83,19 @@ export default function SmartSearch({ onSearch, externalLoading, parentQuery, se
 
             {/* Suggestions Dropdown */}
             {showSuggestions && suggestions.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl overflow-hidden z-[100]">
-                    {suggestions.map((s, i) => (
-                        <div
-                            key={i}
-                            className="px-4 py-2 hover:bg-zinc-800 cursor-pointer text-zinc-300 font-mono flex items-center justify-between transition-colors"
-                            onClick={() => handleSuggestionClick(s)}
-                        >
-                            <span className="font-bold text-white">{s}</span>
-                            <span className="text-xs text-zinc-500">TOKEN</span>
-                        </div>
-                    ))}
+                <div className="absolute top-full left-0 right-0 mt-3 glass-panel border border-white/10 rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.8)] overflow-hidden z-[100] backdrop-blur-2xl bg-black/40">
+                    <div className="max-h-60 overflow-y-auto">
+                        {suggestions.map((s, i) => (
+                            <div
+                                key={i}
+                                className="px-5 py-3 hover:bg-white/10 cursor-pointer text-cyan-100 font-mono flex items-center justify-between transition-colors border-b border-white/5 last:border-0"
+                                onClick={() => handleSuggestionClick(s)}
+                            >
+                                <span className="font-bold text-white tracking-wider">{s}</span>
+                                <span className="text-xs text-cyan-500/50 border border-cyan-500/20 px-2 py-0.5 rounded animate-pulse">TOKEN</span>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             )}
         </div>

@@ -82,19 +82,19 @@ export default function MarketPulse({ onTokenClick }: MarketPulseProps) {
         <div className="w-full max-w-6xl mx-auto mt-12 grid grid-cols-1 lg:grid-cols-4 gap-6">
 
             {/* 1. News Ticker (Full Width) */}
-            <div className="col-span-1 lg:col-span-4 bg-zinc-900/50 border-y border-yellow-500/20 py-2 overflow-hidden flex items-center">
-                <div className="bg-yellow-500 text-black text-xs font-bold px-3 py-1 ml-2 rounded uppercase font-heading">
-                    BREAKING
+            <div className="col-span-1 lg:col-span-4 glass-panel py-2 px-2 overflow-hidden flex items-center rounded-xl mb-4">
+                <div className="bg-magenta-600 text-white text-xs font-bold px-3 py-1 ml-2 rounded uppercase font-heading shadow-[0_0_10px_rgba(255,0,236,0.6)] whitespace-nowrap z-10">
+                    BREAKING //
                 </div>
-                <div className="flex-1 overflow-hidden relative">
+                <div className="flex-1 overflow-hidden relative font-mono">
                     <motion.div
                         className="flex whitespace-nowrap"
-                        animate={{ x: ["100%", "-100%"] }} // Scroll from right to left
-                        transition={{ repeat: Infinity, duration: 20, ease: "linear" }}
+                        animate={{ x: ["50%", "-100%"] }} // Scroll from right to left
+                        transition={{ repeat: Infinity, duration: 25, ease: "linear" }}
                     >
                         {news.map((item, i) => (
-                            <span key={i} className="mx-8 text-zinc-300 font-mono text-sm flex items-center">
-                                <Newspaper className="w-3 h-3 mr-2 text-yellow-500/50" />
+                            <span key={i} className="mx-8 text-cyan-50/80 text-sm flex items-center">
+                                <Newspaper className="w-3 h-3 mr-2 text-cyan-400 animate-pulse" />
                                 {item}
                             </span>
                         ))}
@@ -104,21 +104,21 @@ export default function MarketPulse({ onTokenClick }: MarketPulseProps) {
 
             {/* 2. Trending Grid */}
             <div className="col-span-1 lg:col-span-4">
-                <h3 className="text-lg font-heading font-bold text-zinc-400 mb-4 flex items-center">
-                    <TrendingUp className="w-5 h-5 mr-2 text-green-500" /> SYSTEM DETECTED // HIGH VOLATILITY
+                <h3 className="text-lg font-heading font-bold text-zinc-300 mb-4 flex items-center">
+                    <TrendingUp className="w-5 h-5 mr-2 text-cyan-400 drop-shadow-[0_0_5px_rgba(0,243,255,0.6)]" /> SYSTEM DETECTED // HIGH VOLATILITY
                 </h3>
 
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                     {trending.map((token, i) => (
                         <motion.div
                             key={i}
-                            whileHover={{ scale: 1.05 }}
+                            whileHover={{ y: -5, scale: 1.02 }}
                             onClick={() => onTokenClick(token.symbol)}
-                            className={`bg-zinc-900/80 p-4 rounded-lg border flex flex-col items-center justify-center cursor-pointer transition-colors ${token.change >= 0 ? 'border-green-500/30 hover:border-green-500' : 'border-red-500/30 hover:border-red-500'}`}
+                            className={`glass-panel p-4 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 ${token.change >= 0 ? 'border-green-500/20 hover:border-green-400 hover:shadow-[0_0_15px_rgba(74,222,128,0.3)]' : 'border-red-500/20 hover:border-red-400 hover:shadow-[0_0_15px_rgba(248,113,113,0.3)]'}`}
                         >
-                            <span className="font-bold text-xl tracking-tighter">{token.symbol}</span>
-                            <span className="text-xs text-zinc-500 font-mono">${token.price}</span>
-                            <span className={`text-sm font-bold mt-2 ${token.change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                            <span className="font-bold text-xl tracking-tighter text-white drop-shadow-md">{token.symbol}</span>
+                            <span className="text-xs text-cyan-200/60 font-mono mt-1">${token.price}</span>
+                            <span className={`text-sm font-bold mt-2 ${token.change >= 0 ? 'text-green-400 drop-shadow-[0_0_5px_rgba(74,222,128,0.5)]' : 'text-red-400 drop-shadow-[0_0_5px_rgba(248,113,113,0.5)]'}`}>
                                 {token.change > 0 ? '+' : ''}{token.change}%
                             </span>
                         </motion.div>

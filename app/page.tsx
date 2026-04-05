@@ -1,48 +1,32 @@
 'use client';
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { RadioTower, Cpu, Search, Loader2 } from 'lucide-react';
+import LivePulseWidget from '@/components/widgets/LivePulseWidget';
+import NewsFeedWidget from '@/components/widgets/NewsFeedWidget';
+import AIAnalysisWidget from '@/components/widgets/AIAnalysisWidget';
+import SecurityWidget from '@/components/widgets/SecurityWidget';
+import BinancePortfolioWidget from '@/components/widgets/BinancePortfolioWidget';
+import OpenClawTerminalWidget from '@/components/widgets/OpenClawTerminalWidget';
 import SmartSearch from '@/components/SmartSearch';
-import AIInsight from '@/components/AIInsight';
-import MarketPulse from '@/components/MarketPulse';
-import SecurityRadar from '@/components/SecurityRadar';
-import { Activity, Wallet, ShieldCheck, DollarSign } from 'lucide-react';
 
 export default function Home() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const [inputQuery, setInputQuery] = useState(''); // Lifted state for SmartSearch input if needed, or just let SmartSearch handle its own input. 
-  // actually, SmartSearch manages its own input `query`. 
-  // But if I click a ticker, I might want to update the SmartSearch input? 
-  // The requirement says: "Auto-fill the input and trigger handleSearch".
-  // So likely I need to pass a way to set query to SmartSearch, OR key it to reset, OR just let it be separate.
-  // Ease of implementation: Use a key or just pass a ref? 
-  // Let's keep it simple: MarketPulse click triggers search, maybe fills input?
-  // If I want to update SmartSearch input from parent, I need to control it or expose a method.
-  // Controlling it is "React way".
-
-  // Revised approach:
-  // page.tsx:
-  // const [searchQuery, setSearchQuery] = useState('');
-  // const handleSearch = async (q: string) => { ... }
-  // <SmartSearch value={searchQuery} onChange={setSearchQuery} onSearch={handleSearch} />
-
-  // Let's implement that.
-
   const [searchQuery, setSearchQuery] = useState('');
 
   const handleAnalysis = async (query: string) => {
     if (!query?.trim()) return;
 
     setLoading(true);
-    setData(null);
+    // Don't entirely wipe data immediately so skeleton can overlay cleanly
     try {
       const res = await fetch(`/api/analyze?query=${query}`);
       const result = await res.json();
       setData(result);
     } catch (err) {
       console.error("Search failed", err);
-      // We might want to pass error down or show a toast
     } finally {
       setLoading(false);
     }
@@ -53,124 +37,105 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-black text-white p-4 md:p-8 relative overflow-hidden">
+    <main className="min-h-screen bg-black text-white p-2 md:p-4 lg:p-6 relative font-mono flex flex-col overflow-y-auto custom-scrollbar">
       {/* Background Ambience */}
-      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-yellow-900/20 via-black to-black pointer-events-none" />
+      <div className="fixed inset-0 pointer-events-none select-none z-0">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/10 blur-[130px] rounded-full mix-blend-screen" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-magenta-600/5 blur-[130px] rounded-full mix-blend-screen" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60%] h-[60%] bg-cyan-600/5 blur-[150px] rounded-full mix-blend-screen" />
+      </div>
 
-      {/* Header */}
-      <header className="relative z-10 flex justify-between items-center mb-8 border-b border-white/10 pb-4">
-        <h1
-          className="text-3xl font-heading font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-600 cursor-pointer hover:opacity-80 transition-opacity"
-          onClick={handleLogoClick}
-          title="Reset Dashboard"
-        >
-          SMRE <span className="text-sm font-mono text-zinc-500 ml-2">v2.0 // SMART MONEY RESEARCH ENGINE</span>
-        </h1>
-        <div className="flex gap-4 text-xs font-mono text-zinc-500">
-          <span className="flex items-center"><div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse" /> SYSTEM ONLINE</span>
-          <span>ETH MAINNET</span>
+      {/* Header (Slim) */}
+      <header className="relative z-10 flex justify-between items-center mb-4 pb-2 border-b border-white/5 shrink-0">
+        <div className="flex items-center gap-4">
+          <h1
+            className="text-2xl font-heading font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-magenta-500 cursor-pointer hover:opacity-80 transition-opacity drop-shadow-[0_0_8px_rgba(0,243,255,0.4)]"
+            onClick={handleLogoClick}
+            title="Reset System"
+          >
+            BINANCE SMRE
+          </h1>
+          <div className="hidden md:flex gap-4 text-[10px] font-mono text-cyan-500/50">
+            <span className="flex items-center"><div className="w-1.5 h-1.5 bg-cyan-400 rounded-full mr-1.5 animate-pulse shadow-[0_0_8px_rgba(0,243,255,0.8)]" /> ETH MAINNET</span>
+            <span className="flex items-center"><div className="w-1.5 h-1.5 bg-magenta-400 rounded-full mr-1.5 animate-pulse shadow-[0_0_5px_rgba(255,0,236,0.6)]" /> BINANCE TESTNET</span>
+          </div>
+        </div>
+
+        <div className="bg-black/40 border border-white/10 rounded-full px-4 py-1.5 flex items-center gap-3 backdrop-blur-md">
+          <RadioTower className="w-3 h-3 text-cyan-400 animate-pulse" />
+          <span className="text-xs text-zinc-300 font-bold tracking-wider">GLOBAL CAP: <span className="text-cyan-400">$2.41T</span></span>
+          <span className="text-[10px] text-green-400 ml-1">+1.2%</span>
         </div>
       </header>
 
-      {/* Core Search */}
-      <SmartSearch
-        onSearch={handleAnalysis}
-        externalLoading={loading}
-        parentQuery={searchQuery}
-        setParentQuery={setSearchQuery}
-      />
+      {/* Main Grid Workspace - Fill remaining vertical space */}
+      <div className="relative z-10 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 h-full min-h-0">
 
-      {/* Main Content Area */}
-      <div className="relative z-10 max-w-7xl mx-auto">
-
-        {/* If no data, show Market Pulse */}
-        {!data && !loading && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <MarketPulse onTokenClick={(token) => {
-              setSearchQuery(token);
-              handleAnalysis(token);
-            }} />
-          </motion.div>
-        )}
-
-        {loading && (
-          <div className="flex justify-center items-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500"></div>
+        {/* ================= LEFT COLUMN: THE RADAR ================= */}
+        <div className="col-span-1 lg:col-span-3 flex flex-col gap-4 min-h-0 h-full">
+          <div className="flex-1 min-h-0">
+            <LivePulseWidget
+              onTokenSelect={(token) => {
+                setSearchQuery(token);
+                handleAnalysis(token);
+              }}
+            />
           </div>
-        )}
+          <div className="flex-[1.5] min-h-0">
+            <NewsFeedWidget
+              onKeywordSelect={(keyword) => {
+                setSearchQuery(keyword);
+                handleAnalysis(keyword);
+              }}
+            />
+          </div>
+        </div>
 
-        {/* Analysis Results */}
-        {data && !loading && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8"
-          >
-            {/* Left Column: AI & Info */}
-            <div className="lg:col-span-2 space-y-6">
-
-              {/* Asset Header */}
-              <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-xl flex items-center justify-between">
-                <div>
-                  <h2 className="text-4xl font-heading font-bold text-white mb-1">
-                    {data.type === 'token' ? `$${data.symbol}` : 'WALLET'}
-                  </h2>
-                  <p className="text-zinc-500 font-mono text-sm">
-                    {data.type === 'token' ? data.name : data.address}
-                  </p>
-                </div>
-                {data.type === 'token' && (
-                  <div className="text-right">
-                    <p className="text-2xl font-mono font-bold text-yellow-400">{data.price}</p>
-                    <p className={`text-sm font-bold ${data.change?.includes('-') ? 'text-red-500' : 'text-green-500'}`}>
-                      {data.change} (24h)
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* God Mode AI Insight */}
-              <AIInsight data={data} />
-
-              {/* Extra Data Details */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-zinc-900/30 p-4 rounded-lg border border-zinc-800">
-                  <h4 className="text-zinc-500 text-xs font-bold mb-1 flex items-center"><Activity className="w-3 h-3 mr-1" /> LIQUIDITY / VALUE</h4>
-                  <p className="font-mono text-xl">{data.liquidity || (data.holdings ? data.holdings[0].value : 'N/A')}</p>
-                </div>
-                <div className="bg-zinc-900/30 p-4 rounded-lg border border-zinc-800">
-                  <h4 className="text-zinc-500 text-xs font-bold mb-1 flex items-center"><ShieldCheck className="w-3 h-3 mr-1" /> {data.type === 'token' ? 'SMRE RATING' : 'IDENTITY'}</h4>
-                  <p className="font-mono text-xl text-green-400">
-                    {data.type === 'token' ? `${data.smreRating}/5.0` : data.identity}
-                  </p>
-                </div>
-              </div>
-
+        {/* ================= MIDDLE COLUMN: THE BRAIN ================= */}
+        <div className="col-span-1 lg:col-span-6 flex flex-col gap-4 min-h-0 h-full">
+          {/* SMART COMMAND BAR */}
+          <div className="shrink-0 relative glass-panel rounded-full border-cyan-500/30 overflow-hidden shadow-[0_5px_20px_rgba(0,102,255,0.15)] bg-black/50">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-4">
+              <Cpu className="w-5 h-5 text-magenta-500 animate-pulse drop-shadow-[0_0_8px_rgba(255,0,236,0.5)]" />
             </div>
+            <form onSubmit={(e) => { e.preventDefault(); handleAnalysis(searchQuery); }} className="w-full">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="ENTER CONTRACT OR TICKER (e.g., PEPE, 0x...)"
+                className="w-full bg-transparent py-4 pl-12 pr-16 text-cyan-50 focus:outline-none font-mono tracking-widest text-sm placeholder:text-zinc-600"
+              />
+              <button
+                type="submit"
+                disabled={loading}
+                className="absolute inset-y-1 right-1 px-6 bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-500 hover:to-blue-600 text-white rounded-full font-bold text-xs transition-all disabled:opacity-50"
+              >
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'EXECUTE'}
+              </button>
+            </form>
+          </div>
 
-            {/* Right Column: Security Radar & Risk */}
-            <div className="space-y-6">
-              <SecurityRadar data={data} />
-
-              {data.type === 'wallet' && data.holdings && (
-                <div className="bg-zinc-900/50 border border-zinc-800 p-4 rounded-xl">
-                  <h3 className="text-yellow-500 font-heading tracking-widest mb-4 flex items-center">
-                    <Wallet className="w-5 h-5 mr-2" /> PORTFOLIO
-                  </h3>
-                  <div className="space-y-2">
-                    {data.holdings.map((h: any, i: number) => (
-                      <div key={i} className="flex justify-between text-xs font-mono border-b border-zinc-800 pb-1">
-                        <span className="text-zinc-400">{h.symbol} ({h.balance})</span>
-                        <span className="text-zinc-200">{h.value}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+          {/* DYNAMIC MIDDLE CONTENT */}
+          <div className="flex-1 flex flex-col gap-4 min-h-0">
+            <div className="flex-[1.5] min-h-0">
+              <AIAnalysisWidget data={data} loading={loading} />
             </div>
+            <div className="flex-1 min-h-0">
+              <SecurityWidget data={data} loading={loading} />
+            </div>
+          </div>
+        </div>
 
-          </motion.div>
-        )}
+        {/* ================= RIGHT COLUMN: THE EXECUTION ================= */}
+        <div className="col-span-1 lg:col-span-3 flex flex-col gap-4 min-h-0 h-full">
+          <div className="flex-[1] min-h-0">
+            <BinancePortfolioWidget />
+          </div>
+          <div className="flex-[1.5] min-h-0">
+            <OpenClawTerminalWidget targetAsset={data} />
+          </div>
+        </div>
 
       </div>
     </main>
