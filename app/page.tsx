@@ -7,8 +7,8 @@ import LivePulseWidget from '@/components/widgets/LivePulseWidget';
 import NewsFeedWidget from '@/components/widgets/NewsFeedWidget';
 import AIAnalysisWidget from '@/components/widgets/AIAnalysisWidget';
 import SecurityWidget from '@/components/widgets/SecurityWidget';
-import BinancePortfolioWidget from '@/components/widgets/BinancePortfolioWidget';
-import OpenClawTerminalWidget from '@/components/widgets/OpenClawTerminalWidget';
+import SodexPortfolioWidget from '@/components/widgets/SodexPortfolioWidget';
+import SodexTerminalWidget from '@/components/widgets/SodexTerminalWidget';
 import SmartSearch from '@/components/SmartSearch';
 
 export default function Home() {
@@ -53,11 +53,11 @@ export default function Home() {
             onClick={handleLogoClick}
             title="Reset System"
           >
-            BINANCE SMRE
+            soso-smre
           </h1>
           <div className="hidden md:flex gap-4 text-[10px] font-mono text-cyan-500/50">
             <span className="flex items-center"><div className="w-1.5 h-1.5 bg-cyan-400 rounded-full mr-1.5 animate-pulse shadow-[0_0_8px_rgba(0,243,255,0.8)]" /> ETH MAINNET</span>
-            <span className="flex items-center"><div className="w-1.5 h-1.5 bg-magenta-400 rounded-full mr-1.5 animate-pulse shadow-[0_0_5px_rgba(255,0,236,0.6)]" /> BINANCE TESTNET</span>
+            <span className="flex items-center"><div className="w-1.5 h-1.5 bg-magenta-400 rounded-full mr-1.5 animate-pulse shadow-[0_0_5px_rgba(255,0,236,0.6)]" /> SODEX MAINNET</span>
           </div>
         </div>
 
@@ -130,10 +130,10 @@ export default function Home() {
         {/* ================= RIGHT COLUMN: THE EXECUTION ================= */}
         <div className="col-span-1 lg:col-span-3 flex flex-col gap-4 min-h-0 h-full">
           <div className="flex-[1] min-h-0">
-            <BinancePortfolioWidget />
+            <SodexPortfolioWidget />
           </div>
           <div className="flex-[1.5] min-h-0">
-            <OpenClawTerminalWidget targetAsset={data} />
+            <SodexTerminalWidget targetAsset={data} />
           </div>
         </div>
 

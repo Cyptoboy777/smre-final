@@ -4,9 +4,9 @@ import { useEffect, useState } from 'react';
 import { Wallet, RefreshCw, AlertCircle } from 'lucide-react';
 import WidgetWrapper from './WidgetWrapper';
 
-interface BinancePortfolioWidgetProps { }
+interface SodexPortfolioWidgetProps { }
 
-export default function BinancePortfolioWidget({ }: BinancePortfolioWidgetProps) {
+export default function SodexPortfolioWidget({ }: SodexPortfolioWidgetProps) {
     const [balances, setBalances] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -15,17 +15,17 @@ export default function BinancePortfolioWidget({ }: BinancePortfolioWidgetProps)
         setLoading(true);
         setError(null);
         try {
-            const res = await fetch('/api/binance/balance');
+            const res = await fetch('/api/sodex/balance');
             const data = await res.json();
 
             if (res.ok && data.success) {
                 setBalances(data.balances);
             } else {
-                setError(data.error || "Failed to sync Binance Testnet");
+                setError(data.error || "Failed to sync SoDEX Mainnet");
             }
         } catch (err) {
-            console.error("Binance sync error:", err);
-            setError("Network error syncing Binance");
+            console.error("SoDEX sync error:", err);
+            setError("Network error syncing SoDEX");
         } finally {
             setLoading(false);
         }
@@ -47,7 +47,7 @@ export default function BinancePortfolioWidget({ }: BinancePortfolioWidgetProps)
 
     return (
         <WidgetWrapper
-            title="BINANCE PORTFOLIO"
+            title="SODEX PORTFOLIO"
             icon={<Wallet className="w-4 h-4 text-cyan-400" />}
             loading={loading}
             className="max-h-[300px]"
@@ -56,7 +56,7 @@ export default function BinancePortfolioWidget({ }: BinancePortfolioWidgetProps)
                 {/* Total Balance Overview */}
                 <div className="flex justify-between items-center mb-4 pb-4 border-b border-white/10">
                     <div>
-                        <p className="text-[10px] text-zinc-500 font-mono tracking-widest mb-1">TESTNET EST. VALUE</p>
+                        <p className="text-[10px] text-zinc-500 font-mono tracking-widest mb-1">ON-CHAIN BALANCE</p>
                         <h3 className="text-2xl font-bold font-mono text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]">
                             ${totalValue > 0 ? totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
                         </h3>
@@ -81,7 +81,7 @@ export default function BinancePortfolioWidget({ }: BinancePortfolioWidgetProps)
                 ) : balances.length === 0 && !loading ? (
                     <div className="flex flex-col items-center justify-center flex-1 text-zinc-500 text-sm font-mono text-center">
                         <p>NO ASSETS FOUND</p>
-                        <p className="text-[10px] mt-1">Add funds to Binance Testnet.</p>
+                        <p className="text-[10px] mt-1">Add funds to your mapped SoDEX address.</p>
                     </div>
                 ) : (
                     <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-2">

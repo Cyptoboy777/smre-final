@@ -4,11 +4,11 @@ import { useState } from 'react';
 import { Terminal, ArrowRight, Zap, Target } from 'lucide-react';
 import WidgetWrapper from './WidgetWrapper';
 
-interface OpenClawTerminalWidgetProps {
+interface SodexTerminalWidgetProps {
     targetAsset: any | null;
 }
 
-export default function OpenClawTerminalWidget({ targetAsset }: OpenClawTerminalWidgetProps) {
+export default function SodexTerminalWidget({ targetAsset }: SodexTerminalWidgetProps) {
     const [amount, setAmount] = useState('100');
     const [leverage, setLeverage] = useState('10x');
     const [executing, setExecuting] = useState(false);
@@ -61,7 +61,7 @@ export default function OpenClawTerminalWidget({ targetAsset }: OpenClawTerminal
 
     return (
         <WidgetWrapper
-            title="OPENCLAW TERMINAL"
+            title="SODEX TERMINAL (DEMO)"
             icon={<Terminal className="w-4 h-4 text-cyan-400" />}
             className="flex-1 min-h-[400px]"
         >
@@ -82,6 +82,12 @@ export default function OpenClawTerminalWidget({ targetAsset }: OpenClawTerminal
                             <p className="text-sm font-mono text-cyan-400 drop-shadow-[0_0_5px_rgba(0,243,255,0.4)]">${targetAsset.price}</p>
                         </div>
                     )}
+                </div>
+
+                {/* Demo Balance Display */}
+                <div className="flex justify-between items-center mb-4 px-2">
+                    <span className="text-[10px] text-zinc-500 font-mono tracking-widest">SIMULATED BALANCE</span>
+                    <span className="text-sm font-mono text-magenta-400">10.0000 ETH</span>
                 </div>
 
                 {/* Inputs */}
@@ -139,7 +145,7 @@ export default function OpenClawTerminalWidget({ targetAsset }: OpenClawTerminal
 
                 {/* Terminal Log */}
                 <div className="bg-black/60 border border-white/5 h-24 rounded p-2 overflow-y-auto font-mono text-[10px] custom-scrollbar">
-                    <p className="text-zinc-500 mb-1">&gt; INITIALIZING OPENCLAW AGENT...</p>
+                    <p className="text-zinc-500 mb-1">&gt; INITIALIZING SODEX TERMINAL...</p>
                     <p className="text-cyan-500/50 mb-1">&gt; STANDING BY FOR COMMANDS.</p>
                     {executing && (
                         <p className="text-yellow-500 animate-pulse flex items-center">

@@ -14,8 +14,8 @@ const rajdhani = Rajdhani({
 });
 
 export const metadata: Metadata = {
-  title: "SMRE | Smart Money Research Engine",
-  description: "The Jarvis for Crypto Traders",
+  title: "soso-smre | Intelligence & Trading",
+  description: "Award-winning crypto terminal and SoDEX integration.",
 };
 
 export default function RootLayout({

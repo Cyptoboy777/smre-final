@@ -20,7 +20,7 @@ export default function AIAnalysisWidget({ data, loading }: AIAnalysisWidgetProp
         (data.type === 'wallet'
             ? `ANALYSIS COMPLETE. Identity: ${data.identity}. Security Status: ${data.security?.status_text || 'Unknown'
             }. Recommended Action: ${data.security?.isSafe ? 'MONITOR' : 'BLOCK/IGNORE'}.`
-            : `MARKET SCAN COMPLETE. Sentiment: ${data.sentiment}. SMRE Score: ${data.smreRating
+            : `MARKET SCAN COMPLETE. Sentiment: ${data.sentiment}. soso-smre Score: ${data.smreRating
             }/5.0. Trend: ${data.change?.includes('-') ? 'DOWNTREND' : 'UPTREND'}.`)
         : '';
 
