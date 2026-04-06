@@ -16,7 +16,7 @@ export default function SecurityRadar({ data }: SecurityRadarProps) {
     const isHoneypot = data.type === 'token' && data.security?.isHoneypot === true;
 
     if (data.type === 'token') {
-        const score = parseFloat(data.smreRating || '0') * 20;
+        const score = parseFloat(data.sosoRating || '0') * 20;
         chartData = [
             { subject: 'Liquidity', A: score, fullMark: 100 },
             { subject: 'Volume', A: score > 50 ? score + 10 : score - 10, fullMark: 100 },
@@ -35,7 +35,7 @@ export default function SecurityRadar({ data }: SecurityRadarProps) {
         ];
     }
 
-    const riskColor = (isHoneypot || parseFloat(data.smreRating) < 2.0) ? '#ff003c' : '#00ff9d'; // Neon Red or Neon Green
+    const riskColor = (isHoneypot || parseFloat(data.sosoRating) < 2.0) ? '#ff003c' : '#00ff9d'; // Neon Red or Neon Green
 
     return (
         <div className="relative glass-panel rounded-2xl p-4 flex flex-col items-center shadow-[0_4px_30px_rgba(0,0,0,0.5)] border-white/5">

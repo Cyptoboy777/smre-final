@@ -3,6 +3,7 @@ import Groq from 'groq-sdk';
 
 // --- Configuration ---
 const DEXSCREENER_API = 'https://api.dexscreener.com/latest/dex/search';
+const SODEX_TICKER_API = 'https://mainnet-gw.sodex.dev/api/v1/spot/ticker/24hr';
 const GOPLUS_TOKEN_API = 'https://api.gopluslabs.io/api/v1/token_security/1'; // Using public GoPlus API
 const GOPLUS_WALLET_API = 'https://api.gopluslabs.io/api/v1/address_security';
 const ETHERSCAN_API = 'https://api.etherscan.io/api';
@@ -53,7 +54,7 @@ export async function GET(request: Request) {
         return NextResponse.json({
             type: 'error',
             message: 'Analysis failed. System overloaded.',
-            smreRating: '0.0'
+            sosoRating: '0.0'
         }, { status: 200 });
     }
 }
@@ -69,19 +70,34 @@ async function handleTokenAnalysis(query: string) {
     if (!pair) {
         return NextResponse.json({
             type: 'token',
-            smreRating: '0.0',
+            sosoRating: '0.0',
             analysis: `Token '${query}' not found. Caution advised.`,
             security: { isSafe: false, status_text: "Token Not Found", details: [] }
         });
     }
 
-    const { priceUsd, priceChange, volume, liquidity, baseToken } = pair;
+    // --- SoDEX Market Sync ---
+    let priceUsd = pair.priceUsd;
+    let change24h = pair.priceChange?.h24 || 0;
+    let isSodexVerified = false;
+
+    try {
+        const sodexTicker = await safeFetch(`${SODEX_TICKER_API}?symbol=${pair.baseToken.symbol}-USDT`);
+        if (sodexTicker && sodexTicker.lastPrice) {
+            priceUsd = sodexTicker.lastPrice;
+            change24h = parseFloat(sodexTicker.priceChangePercent);
+            isSodexVerified = true;
+        }
+    } catch (e) {
+        console.warn("SoDEX Market Sync unavailable, using DexScreener aggregator.");
+    }
+
+    const { priceChange, volume, liquidity, baseToken } = pair;
     const price = parseFloat(priceUsd || '0');
     // Multi-Timeframe Data
     const m5 = priceChange?.m5 || 0;
     const h1 = priceChange?.h1 || 0;
     const h6 = priceChange?.h6 || 0;
-    const change24h = priceChange?.h24 || 0;
 
     const vol24h = volume?.h24 || 0;
     const liqUsd = liquidity?.usd || 0;
@@ -123,6 +139,7 @@ async function handleTokenAnalysis(query: string) {
     if (sellTax > 5 || buyTax > 5) score -= 2.0;
     if (isHoneypot) score = 0.0;
     score = Math.max(0, Math.min(5, score));
+    const sosoRating = score.toFixed(1);
 
     // Simulate Technical Indicators
     let rsi = 50;
@@ -274,9 +291,10 @@ Generate a concise, extremely high-quality professional analysis mapping the exa
         price: formatUSD(price),
         change: `${change24h.toFixed(2)}%`,
         liquidity: formatUSD(liqUsd),
-        smreRating: score.toFixed(1),
+        sosoRating: sosoRating,
         sentiment: sentiment,
         inflow: inflowStatus,
+        isSodexVerified: isSodexVerified,
         analysis: aiAnalysis, // Markdown content
         security: {
             isSafe: !isHoneypot,
@@ -316,7 +334,7 @@ async function handleWalletAnalysis(address: string) {
         return NextResponse.json({
             type: 'wallet',
             address: address,
-            smreRating: '0.0',
+            sosoRating: '0.0',
             identity: "SCAMMER / BLACKLISTED",
             analysis: "**CRITICAL WARNING:** This wallet is flagged for malicious activities (Phishing/Honeypot/Blackmail). \n\n**DO NOT INTERACT.**",
             inflow: "Suspicious",
@@ -426,7 +444,7 @@ ${balanceETH > 10 ? "High capital capability. Often moves markets on SoDEX." : (
     return NextResponse.json({
         type: 'wallet',
         address: address,
-        smreRating: rating.toFixed(1),
+        sosoRating: rating.toFixed(1),
         identity: identity,
         analysis: analysisText,
         inflow: `${txCount} Txns`,

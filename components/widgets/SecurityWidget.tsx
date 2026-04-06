@@ -15,7 +15,7 @@ export default function SecurityWidget({ data, loading }: SecurityWidgetProps) {
     const isHoneypot = data?.type === 'token' && data?.security?.isHoneypot === true;
 
     if (data?.type === 'token') {
-        const score = parseFloat(data.smreRating || '0') * 20;
+        const score = parseFloat(data.sosoRating || '0') * 20;
         chartData = [
             { subject: 'Liquidity', A: score, fullMark: 100 },
             { subject: 'Volume', A: score > 50 ? score + 10 : score - 10, fullMark: 100 },
@@ -34,7 +34,7 @@ export default function SecurityWidget({ data, loading }: SecurityWidgetProps) {
         ];
     }
 
-    const riskColor = isHoneypot || (data && parseFloat(data.smreRating) < 2.0) ? '#ff003c' : '#00ff9d';
+    const riskColor = isHoneypot || (data && parseFloat(data.sosoRating) < 2.0) ? '#ff003c' : '#00ff9d';
 
     return (
         <WidgetWrapper

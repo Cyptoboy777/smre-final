@@ -20,7 +20,7 @@ export default function AIAnalysisWidget({ data, loading }: AIAnalysisWidgetProp
         (data.type === 'wallet'
             ? `ANALYSIS COMPLETE. Identity: ${data.identity}. Security Status: ${data.security?.status_text || 'Unknown'
             }. Recommended Action: ${data.security?.isSafe ? 'MONITOR' : 'BLOCK/IGNORE'}.`
-            : `MARKET SCAN COMPLETE. Sentiment: ${data.sentiment}. soso-smre Score: ${data.smreRating
+            : `MARKET SCAN COMPLETE. Sentiment: ${data.sentiment}. soso-smre Score: ${data.sosoRating
             }/5.0. Trend: ${data.change?.includes('-') ? 'DOWNTREND' : 'UPTREND'}.`)
         : '';
 
@@ -60,9 +60,16 @@ export default function AIAnalysisWidget({ data, loading }: AIAnalysisWidgetProp
                         {data && (
                             <div className="mb-4 pb-4 border-b border-cyan-500/20 flex flex-col gap-2">
                                 <div className="flex justify-between items-center">
-                                    <span className="text-xs text-cyan-500/60 font-bold uppercase tracking-widest">
-                                        Target: {data.type === 'token' ? data.symbol : 'Wallet'} // Model: Groq AI
-                                    </span>
+                                    <div className="flex flex-col">
+                                        <span className="text-xs text-cyan-500/60 font-bold uppercase tracking-widest">
+                                            Target: {data.type === 'token' ? data.symbol : 'Wallet'} // Model: Groq AI
+                                        </span>
+                                        {data.isSodexVerified && (
+                                            <span className="text-[9px] text-green-400 font-bold uppercase tracking-tighter mt-1">
+                                                ✓ Verified on SoDEX Mainnet
+                                            </span>
+                                        )}
+                                    </div>
                                     {data.type === 'token' && (
                                         <div className="text-right">
                                             <span className="text-sm font-bold text-white mr-2">{data.price}</span>

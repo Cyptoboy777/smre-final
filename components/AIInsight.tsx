@@ -15,7 +15,7 @@ export default function AIInsight({ data }: AIInsightProps) {
     // Derive insight from data if raw 'ai_insight' is missing
     const insight = data.analysis || (data.type === 'wallet'
         ? `ANALYSIS COMPLETE. Identity: ${data.identity}. Security Status: ${data.security?.status_text || 'Unknown'}. Recommended Action: ${data.security?.isSafe ? 'MONITOR' : 'BLOCK/IGNORE'}.`
-        : `MARKET SCAN COMPLETE. Sentiment: ${data.sentiment}. SMRE Score: ${data.smreRating}/5.0. Trend: ${data.change.includes('-') ? 'DOWNTREND' : 'UPTREND'}.`);
+        : `MARKET SCAN COMPLETE. Sentiment: ${data.sentiment}. soso-smre Score: ${data.sosoRating}/5.0. Trend: ${data.change.includes('-') ? 'DOWNTREND' : 'UPTREND'}.`);
 
     const type = data.type;
 
@@ -51,7 +51,7 @@ export default function AIInsight({ data }: AIInsightProps) {
             <div className="flex items-center gap-3 mb-4 border-b border-cyan-500/20 pb-2">
                 <Sparkles className="text-cyan-400 w-5 h-5 animate-pulse drop-shadow-[0_0_5px_rgba(0,243,255,0.8)]" />
                 <h2 className="text-xl font-heading font-bold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">
-                    SMRE INTELLIGENCE <span className="text-xs text-cyan-500/50 ml-2">v2.0 // {type.toUpperCase()} MODE</span>
+                    soso-smre INTELLIGENCE <span className="text-xs text-cyan-500/50 ml-2">v2.0 // {type.toUpperCase()} MODE</span>
                 </h2>
             </div>
 

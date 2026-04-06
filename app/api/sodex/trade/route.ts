@@ -40,7 +40,7 @@ export async function POST(req: Request) {
                 accountID: 1, // Mock Account ID, should be dynamic in production
                 symbolID: 1,  // Mock Symbol ID mapping
                 orders: [{
-                    clOrdID: `smre-order-${Date.now()}`,
+                    clOrdID: `soso-order-${Date.now()}`,
                     modifier: 1,
                     side: direction === 'LONG' ? 1 : 2, // 1 for Buy/Long, 2 for Sell/Short
                     type: 2, // Limit
