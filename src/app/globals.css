@@ -1,0 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 5.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 180 100% 50%; /* Neon Cyan */
+    --primary-foreground: 180 100% 10%;
+    --secondary: 270 100% 60%; /* Neon Purple */
+    --secondary-foreground: 270 100% 10%;
+    --accent: 142 100% 50%; /* Neon Green */
+    --accent-foreground: 142 100% 10%;
+    --destructive: 0 100% 50%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 180 100% 50%;
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-black text-foreground font-sans selection:bg-primary selection:text-black;
+    background-image: 
+      radial-gradient(circle at 50% 0%, rgba(0, 243, 255, 0.05), transparent 40%),
+      radial-gradient(circle at 100% 100%, rgba(255, 0, 236, 0.03), transparent 30%);
+    background-attachment: fixed;
+  }
+}
+
+.glass-panel {
+  @apply bg-white/[0.03] backdrop-blur-md border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.36)];
+}
+
+.neon-glow-cyan {
+  @apply drop-shadow-[0_0_8px_rgba(0,243,255,0.8)];
+}
+
+.neon-glow-purple {
+  @apply drop-shadow-[0_0_8px_rgba(255,0,236,0.8)];
+}
+
+.neon-glow-green {
+  @apply drop-shadow-[0_0_8px_rgba(0,255,163,0.8)];
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-white/10 rounded-full hover:bg-white/20 transition-colors;
+}
+
+@keyframes typing {
+  from { width: 0 }
+  to { width: 100% }
+}
+
+@keyframes blink {
+  50% { border-color: transparent }
+}
