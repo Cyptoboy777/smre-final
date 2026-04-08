@@ -1,6 +1,4 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 @layer base {
   :root {
@@ -27,14 +25,20 @@
 
 @layer base {
   * {
-    @apply border-border;
+    border-color: hsl(240 3.7% 15.9%);
   }
   body {
-    @apply bg-black text-foreground font-sans selection:bg-primary selection:text-black;
+    background-color: #000000;
+    color: hsl(0 0% 98%);
+    font-family: ui-sans-serif, system-ui, sans-serif;
     background-image: 
       radial-gradient(circle at 50% 0%, rgba(0, 243, 255, 0.05), transparent 40%),
       radial-gradient(circle at 100% 100%, rgba(255, 0, 236, 0.03), transparent 30%);
     background-attachment: fixed;
+  }
+  ::selection {
+    background-color: hsl(180 100% 50%);
+    color: #000;
   }
 }
 
