@@ -3,39 +3,88 @@
 import { useEffect, useState } from 'react';
 import { Activity, TrendingUp, TrendingDown } from 'lucide-react';
 import WidgetWrapper from '../WidgetWrapper';
+import { type MarketPulseItem } from '@/lib/crypto-dashboard';
+import { useSodexWebSocket } from '@/hooks/useSodexWebSocket';
 
-const ASSETS = ['BTC', 'ETH', 'SOL'];
+const TRACKED_SYMBOLS = ['BTC-USD', 'ETH-USD', 'SOL-USD'];
+
+type AllBookTickerMessage = {
+    channel?: string;
+    type?: 'snapshot' | 'update';
+    data?: Array<{
+        s: string;
+        a: string;
+        b: string;
+    }>;
+};
 
 export default function MarketPulse() {
-    const [prices, setPrices] = useState<any[]>([]);
+    const [prices, setPrices] = useState<MarketPulseItem[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     const fetchPulse = async () => {
         try {
-            // Fetching real-time tickers from SoDEX Spot API
-            const base = process.env.NEXT_PUBLIC_SODEX_API_BASE_URL;
-            const requests = ASSETS.map(asset => 
-                fetch(`${base}/spot/ticker/24hr?symbol=${asset}-USDT`).then(r => r.json())
-            );
-            
-            const results = await Promise.all(requests);
-            setPrices(results.filter(r => r && r.lastPrice).map((r, i) => ({
-                symbol: ASSETS[i],
-                price: parseFloat(r.lastPrice).toLocaleString(undefined, { minimumFractionDigits: 2 }),
-                change: parseFloat(r.priceChangePercent).toFixed(2),
-                isUp: parseFloat(r.priceChangePercent) >= 0
-            })));
-            setLoading(false);
-        } catch (e) {
-            // Mock data for UI stability if API is unreachable
-            setPrices([
-                { symbol: 'BTC', price: '64,231.50', change: '1.24', isUp: true },
-                { symbol: 'ETH', price: '2,854.12', change: '-2.45', isUp: false },
-                { symbol: 'SOL', price: '142.05', change: '5.10', isUp: true }
-            ]);
+            const res = await fetch('/api/sodex/market?market=perps');
+            const data = await res.json();
+
+            if (data?.success && Array.isArray(data.items) && data.items.length > 0) {
+                setPrices(
+                    data.items
+                        .filter((item: MarketPulseItem) => TRACKED_SYMBOLS.includes(item.symbol))
+                        .slice(0, 3)
+                );
+                setError(null);
+            } else {
+                throw new Error(data?.error || 'Unable to load SoDEX market pulse');
+            }
+        } catch (fetchError: any) {
+            setError(fetchError?.message || 'Unable to load SoDEX market pulse');
+        } finally {
             setLoading(false);
         }
     };
+
+    useSodexWebSocket<AllBookTickerMessage>({
+        url: 'wss://mainnet-gw.sodex.dev/ws/perps',
+        subscribeMessages: [
+            {
+                op: 'subscribe',
+                params: {
+                    channel: 'allBookTicker',
+                },
+            },
+        ],
+        onMessage: (message) => {
+            if (message.channel !== 'allBookTicker' || !Array.isArray(message.data)) {
+                return;
+            }
+
+            setPrices((current) =>
+                current.map((item) => {
+                    const update = message.data?.find((entry) => entry.s === item.symbol);
+
+                    if (!update) {
+                        return item;
+                    }
+
+                    const ask = Number(update.a);
+                    const bid = Number(update.b);
+                    const price = ((ask + bid) / 2).toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                    });
+
+                    return {
+                        ...item,
+                        price,
+                        bidPrice: update.b,
+                        askPrice: update.a,
+                    };
+                })
+            );
+        },
+    });
 
     useEffect(() => {
         fetchPulse();
@@ -44,7 +93,7 @@ export default function MarketPulse() {
     }, []);
 
     return (
-        <WidgetWrapper title="MARKET PULSE" icon={<Activity className="w-3 h-3" />} loading={loading}>
+        <WidgetWrapper title="MARKET PULSE" icon={<Activity className="w-3 h-3" />} loading={loading} error={error}>
             <div className="grid grid-cols-1 gap-2 h-full">
                 {prices.map((asset, i) => (
                     <div key={i} className="flex items-center justify-between p-2 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/5 transition-all">
@@ -57,7 +106,7 @@ export default function MarketPulse() {
                         </div>
                         <div className={`flex items-center gap-1 text-[10px] font-bold font-mono ${asset.isUp ? 'text-accent neon-glow-green' : 'text-destructive'}`}>
                             {asset.isUp ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                            {asset.change}%
+                            {asset.change}
                         </div>
                     </div>
                 ))}

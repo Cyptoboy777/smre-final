@@ -8,11 +8,7 @@ export async function GET() {
 
         return NextResponse.json({
             success: true,
-            address: portfolio.address,
-            spotAccountID: portfolio.spotAccountID,
-            perpsAccountID: portfolio.perpsAccountID,
-            balances: portfolio.balances,
-            recentOrders: portfolio.recentOrders,
+            ...portfolio,
         });
     } catch (error) {
         return NextResponse.json(

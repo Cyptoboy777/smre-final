@@ -1,64 +1,45 @@
 import { NextResponse } from 'next/server';
-import { ethers } from 'ethers';
+import { getErrorMessage, normalizeNumericString } from '@/lib/crypto-dashboard';
+import { placeSodexPerpsOrder } from '@/lib/server/sodex';
 
-// EIP-712 Order Domain & Type
-const SODEX_DOMAIN = {
-    name: 'SoDEX Mainnet',
-    version: '1',
-    chainId: 1, // ETH Mainnet Context
-    verifyingContract: '0x0000000000000000000000000000000000000000'
-};
-
-const ORDER_TYPE = {
-    Order: [
-        { name: 'symbol', type: 'string' },
-        { name: 'amount', type: 'uint256' },
-        { name: 'leverage', type: 'uint8' },
-        { name: 'isLong', type: 'bool' },
-        { name: 'timestamp', type: 'uint256' }
-    ]
+type TradeBody = {
+    symbol?: string;
+    amount?: number;
+    direction?: 'LONG' | 'SHORT';
 };
 
 export async function POST(request: Request) {
-    const body = await request.json();
-    const { symbol, amount, leverage, direction } = body;
-    
-    const privKey = process.env.SODEX_API_PRIVATE_KEY;
-
-    if (!privKey || privKey === 'your_private_key_here') {
-        return NextResponse.json({ 
-            success: false, 
-            error: 'SODEX Terminal restricted: Private Key not configured in environment.' 
-        }, { status: 500 });
-    }
-
     try {
-        const wallet = new ethers.Wallet(privKey);
-        const timestamp = Math.floor(Date.now() / 1000);
-        const amountWei = ethers.parseUnits(amount.toString(), 6); // USDC-style 6 decimals
-        
-        const leverageInt = parseInt(leverage.replace('x', '')) || 1;
+        const body = (await request.json()) as TradeBody;
+        const symbol = typeof body.symbol === 'string' && body.symbol.trim() ? body.symbol.trim().toUpperCase() : '';
+        const amount = Number(body.amount ?? 0);
+        const direction = body.direction === 'SHORT' ? 'SHORT' : 'LONG';
 
-        // Perform EIP-712 Signing (Server-Side Only)
-        const signature = await wallet.signTypedData(SODEX_DOMAIN, ORDER_TYPE, {
-            symbol: `${symbol}-USDT`,
-            amount: amountWei,
-            leverage: leverageInt,
-            isLong: direction === 'LONG',
-            timestamp: BigInt(timestamp)
+        if (!symbol) {
+            return NextResponse.json({ success: false, error: 'Symbol is required' }, { status: 400 });
+        }
+
+        if (!Number.isFinite(amount) || amount <= 0) {
+            return NextResponse.json({ success: false, error: 'Quantity must be greater than zero' }, { status: 400 });
+        }
+
+        const result = await placeSodexPerpsOrder({
+            symbol,
+            quantity: normalizeNumericString(amount, 6),
+            direction,
         });
 
-        // Simulating SoDEX Gateway Persistence
         return NextResponse.json({
             success: true,
-            orderID: `SODEX-${Math.random().toString(36).substring(7).toUpperCase()}`,
-            signature,
-            timestamp,
-            signer: wallet.address,
-            status: 'OPEN / PLACED'
+            result,
         });
-
-    } catch (e: any) {
-        return NextResponse.json({ success: false, error: e.message }, { status: 400 });
+    } catch (error) {
+        return NextResponse.json(
+            {
+                success: false,
+                error: getErrorMessage(error),
+            },
+            { status: 500 }
+        );
     }
 }

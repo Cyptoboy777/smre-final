@@ -29,15 +29,17 @@ export default function Dashboard() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const handleSearch = async (e?: React.FormEvent) => {
+    const handleSearch = async (e?: React.FormEvent, overrideQuery?: string) => {
         if (e) e.preventDefault();
-        if (!query) return;
+        const searchTerm = (overrideQuery ?? query).trim();
+        if (!searchTerm) return;
 
         setLoading(true);
         setError(null);
 
         try {
-            const res = await fetch(`/api/analyze?query=${query}`);
+            const params = new URLSearchParams({ query: searchTerm });
+            const res = await fetch(`/api/analyze?${params.toString()}`);
             const data = await res.json();
             if (data.error) throw new Error(data.error);
             setAnalysisData(data);
@@ -103,7 +105,7 @@ export default function Dashboard() {
                         <MarketPulse />
                     </div>
                     <div className="flex-1 min-h-0">
-                        <NewsStream onTickerClick={(t) => { setQuery(t); handleSearch(); }} />
+                        <NewsStream onTickerClick={(t) => { setQuery(t); handleSearch(undefined, t); }} />
                     </div>
                 </div>
 

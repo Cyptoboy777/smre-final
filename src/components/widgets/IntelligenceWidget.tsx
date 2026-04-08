@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { Bot, Sparkles, AlertCircle, Quote, Shield } from 'lucide-react';
+import { Bot, Sparkles, Shield } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import WidgetWrapper from '../WidgetWrapper';
 
 interface IntelligenceWidgetProps {
@@ -60,7 +60,9 @@ export default function IntelligenceWidget({ data, loading, error }: Intelligenc
                             <div className="flex items-center justify-between p-3 rounded-xl bg-primary/5 border border-primary/20 shrink-0">
                                 <div className="flex flex-col">
                                     <span className="text-[8px] font-mono text-primary/50 uppercase tracking-widest leading-none mb-1">TARGET_IDENTITY</span>
-                                    <h4 className="text-sm font-bold text-white uppercase tracking-tight">{data.name} ({data.symbol})</h4>
+                                    <h4 className="text-sm font-bold text-white uppercase tracking-tight">
+                                        {data.type === 'wallet' ? data.address : `${data.name} (${data.symbol})`}
+                                    </h4>
                                 </div>
                                 <div className="text-right">
                                     <span className="text-[8px] font-mono text-primary/50 uppercase tracking-widest leading-none mb-1">CONVICTION_SCORE</span>
