@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
-import { getErrorMessage, normalizeNumericString } from '@/lib/crypto-dashboard';
+import { normalizeNumericString } from '@/lib/crypto-dashboard';
 import { getSodexServerAuthMessage, hasSodexServerAuth, placeSodexPerpsOrder } from '@/lib/server/sodex';
+import { ensureServerConfiguration, handleRoute, jsonError, jsonSuccess } from '@/lib/server/route-response';
 
 type TradeBody = {
     symbol?: string;
@@ -9,28 +9,20 @@ type TradeBody = {
 };
 
 export async function POST(request: Request) {
-    if (!hasSodexServerAuth()) {
-        return NextResponse.json(
-            {
-                success: false,
-                error: getSodexServerAuthMessage(),
-            },
-            { status: 503 }
-        );
-    }
+    return handleRoute(async () => {
+        ensureServerConfiguration(hasSodexServerAuth(), getSodexServerAuthMessage() || 'SoDEX server auth is not configured');
 
-    try {
         const body = (await request.json()) as TradeBody;
         const symbol = typeof body.symbol === 'string' && body.symbol.trim() ? body.symbol.trim().toUpperCase() : '';
         const amount = Number(body.amount ?? 0);
         const direction = body.direction === 'SHORT' ? 'SHORT' : 'LONG';
 
         if (!symbol) {
-            return NextResponse.json({ success: false, error: 'Symbol is required' }, { status: 400 });
+            return jsonError('Symbol is required', 400);
         }
 
         if (!Number.isFinite(amount) || amount <= 0) {
-            return NextResponse.json({ success: false, error: 'Quantity must be greater than zero' }, { status: 400 });
+            return jsonError('Quantity must be greater than zero', 400);
         }
 
         const result = await placeSodexPerpsOrder({
@@ -39,17 +31,8 @@ export async function POST(request: Request) {
             direction,
         });
 
-        return NextResponse.json({
-            success: true,
+        return jsonSuccess({
             result,
         });
-    } catch (error) {
-        return NextResponse.json(
-            {
-                success: false,
-                error: getErrorMessage(error),
-            },
-            { status: 500 }
-        );
-    }
+    });
 }

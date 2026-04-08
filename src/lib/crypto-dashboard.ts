@@ -71,7 +71,7 @@ export type AnalysisSnapshot = {
     security: SecuritySnapshot;
     news: NewsItem[];
     market: MarketPulseItem[];
-    source: 'groq' | 'deterministic';
+    source: 'groq';
     updatedAt: string;
 };
 
@@ -99,4 +99,4 @@ export const normalizeNumericString = (value: unknown, decimals = 4) => {
 export const truncateAddress = (value: string) => `${value.slice(0, 6)}...${value.slice(-4)}`;
 
 export const getErrorMessage = (error: unknown) =>
-    error instanceof Error ? error.message : 'Unexpected error';
+    typeof error === 'string' ? error : error instanceof Error ? error.message : 'Unexpected error';

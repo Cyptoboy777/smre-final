@@ -313,81 +313,24 @@ const resolveDexPair = async (query: string) => {
 };
 
 const generateGroqAnalysis = async (prompt: string) => {
-    try {
-        const groq = new Groq({ apiKey: requiredEnv('GROQ_API_KEY') });
-        const completion = await groq.chat.completions.create({
-            model: 'llama3-70b-8192',
-            temperature: 0.2,
-            messages: [{ role: 'user', content: prompt }],
-        });
+    const groq = new Groq({ apiKey: requiredEnv('GROQ_API_KEY') });
+    const completion = await groq.chat.completions.create({
+        model: 'llama3-70b-8192',
+        temperature: 0.2,
+        messages: [{ role: 'user', content: prompt }],
+    });
 
-        return {
-            text: completion.choices[0]?.message?.content?.trim() || '',
-            source: 'groq' as const,
-        };
-    } catch {
-        return {
-            text: '',
-            source: 'deterministic' as const,
-        };
+    const text = completion.choices[0]?.message?.content?.trim();
+
+    if (!text) {
+        throw new Error('Groq returned an empty analysis payload');
     }
+
+    return {
+        text,
+        source: 'groq' as const,
+    };
 };
-
-const deterministicTokenAnalysis = ({
-    symbol,
-    name,
-    price,
-    change,
-    security,
-    news,
-}: {
-    symbol: string;
-    name: string;
-    price: string;
-    change: string;
-    security: SecuritySnapshot;
-    news: NewsItem[];
-}) =>
-    [
-        '## EXECUTIVE SUMMARY',
-        `${name} (${symbol}) is trading at ${price} with a 24h move of ${change}.`,
-        '',
-        '## INSTITUTIONAL WHALE TRACKING',
-        `News catalyst count: ${news.length}. Primary risk flags: ${security.flags.length > 0 ? security.flags.join(', ') : 'none detected'}.`,
-        '',
-        '## BULL VS BEAR CASE',
-        security.isSafe
-            ? 'Security checks are broadly clean, so the dominant drivers are liquidity, narrative rotation, and execution quality.'
-            : 'Security anomalies are present, so aggressive positioning should be avoided until the contract risk profile improves.',
-        '',
-        '## FINAL CONVICTION RATING (1.0 to 10.0)',
-        security.isSafe ? '7.4' : '3.1',
-    ].join('\n');
-
-const deterministicWalletAnalysis = ({
-    address,
-    ethBalance,
-    security,
-}: {
-    address: string;
-    ethBalance: number;
-    security: SecuritySnapshot;
-}) =>
-    [
-        '## EXECUTIVE SUMMARY',
-        `Wallet ${address} currently holds approximately ${ethBalance.toFixed(4)} ETH on Ethereum mainnet.`,
-        '',
-        '## INSTITUTIONAL WHALE TRACKING',
-        `Risk flags detected: ${security.flags.length > 0 ? security.flags.join(', ') : 'none detected'}.`,
-        '',
-        '## BULL VS BEAR CASE',
-        security.isSafe
-            ? 'The wallet does not show immediate blacklist or phishing flags, so it is suitable for continued monitoring.'
-            : 'The wallet carries serious security warnings and should be treated as hostile or compromised until proven otherwise.',
-        '',
-        '## FINAL CONVICTION RATING (1.0 to 10.0)',
-        security.isSafe ? '6.8' : '1.8',
-    ].join('\n');
 
 export const buildTokenAnalysis = async (input: string): Promise<AnalysisSnapshot> => {
     const query = input.toUpperCase();
@@ -442,7 +385,7 @@ export const buildTokenAnalysis = async (input: string): Promise<AnalysisSnapsho
     ].join('\n');
 
     const groq = await generateGroqAnalysis(prompt);
-    const analysis = groq.text || deterministicTokenAnalysis({ symbol, name, price, change, security, news });
+    const analysis = groq.text;
     const ratingMatch = analysis.match(/FINAL CONVICTION RATING[\s\S]*?(\d+(?:\.\d+)?)/i);
 
     return {
@@ -492,7 +435,7 @@ export const buildWalletAnalysis = async (address: string): Promise<AnalysisSnap
     ].join('\n');
 
     const groq = await generateGroqAnalysis(prompt);
-    const analysis = groq.text || deterministicWalletAnalysis({ address, ethBalance, security });
+    const analysis = groq.text;
     const ratingMatch = analysis.match(/FINAL CONVICTION RATING[\s\S]*?(\d+(?:\.\d+)?)/i);
 
     return {

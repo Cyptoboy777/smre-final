@@ -1,14 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Zap, ArrowUpRight, ArrowDownRight, Activity, Terminal, Shield, RefreshCw } from 'lucide-react';
 import WidgetWrapper from '../WidgetWrapper';
 import { motion } from 'framer-motion';
 import { type SodexOrder } from '@/lib/crypto-dashboard';
 import { useSodexWebSocket } from '@/hooks/useSodexWebSocket';
+import { useApiMutation } from '@/hooks/useApiMutation';
+import { useApiQuery } from '@/hooks/useApiQuery';
+import { fetchApi } from '@/lib/client/api-client';
+import { type ApiSuccessPayload, type MarketRouteResponse, type OrdersRouteResponse, type TradeRouteResponse } from '@/lib/api';
 
 interface SodexTerminalProps {
-    target: any | null;
+    target: { symbol?: string } | null;
 }
 
 type AllBookTickerMessage = {
@@ -21,23 +25,9 @@ type AllBookTickerMessage = {
     }>;
 };
 
-type OrdersRouteResponse = {
-    success?: boolean;
-    authenticated?: boolean;
-    reason?: string;
-    orders?: SodexOrder[];
-    error?: string;
-};
-
 export default function SodexTerminal({ target }: SodexTerminalProps) {
     const [amount, setAmount] = useState('0.010000');
-    const [price, setPrice] = useState<string | null>(null);
-    const [executing, setExecuting] = useState(false);
-    const [orders, setOrders] = useState<SodexOrder[]>([]);
-    const [serverAuthenticated, setServerAuthenticated] = useState(true);
-    const [statusNote, setStatusNote] = useState<string | null>(null);
-    const [error, setError] = useState<string | null>(null);
-    const [loadingOrders, setLoadingOrders] = useState(true);
+    const [validationError, setValidationError] = useState<string | null>(null);
 
     const asset = target?.symbol
         ? String(target.symbol).includes('-')
@@ -45,64 +35,62 @@ export default function SodexTerminal({ target }: SodexTerminalProps) {
             : `${String(target.symbol).toUpperCase()}-USD`
         : 'BTC-USD';
 
-    const loadOrders = async () => {
-        setLoadingOrders(true);
-        try {
+    const {
+        data: ordersData,
+        loading: loadingOrders,
+        error: ordersError,
+        reload: reloadOrders,
+    } = useApiQuery<SodexOrder[]>({
+        deps: [asset],
+        request: async (signal) => {
             const params = new URLSearchParams({
                 market: 'perps',
                 symbol: asset,
                 limit: '8',
             });
-            const res = await fetch(`/api/sodex/orders?${params.toString()}`);
-            const data = (await res.json()) as OrdersRouteResponse;
+            const response = await fetchApi<ApiSuccessPayload<OrdersRouteResponse>>(`/api/sodex/orders?${params.toString()}`, {
+                signal,
+            });
+            return response.orders || [];
+        },
+    });
 
-            if (!data?.success) {
-                throw new Error(data?.error || 'Unable to load order history');
-            }
-
-            if (data.authenticated === false) {
-                setServerAuthenticated(false);
-                setStatusNote(data.reason || 'READ_ONLY_MARKET_MODE');
-                setOrders([]);
-                setError(null);
-                return;
-            }
-
-            setServerAuthenticated(true);
-            setStatusNote(null);
-            setOrders(data.orders || []);
-            setError(null);
-        } catch (fetchError: any) {
-            setError(fetchError?.message || 'Unable to load order history');
-        } finally {
-            setLoadingOrders(false);
-        }
-    };
-
-    // Live Price Polling (10s)
-    const fetchLivePrice = async () => {
-        try {
+    const { data: price, error: priceError, setData: setPrice } = useApiQuery<string | null>({
+        deps: [asset],
+        refreshIntervalMs: 15000,
+        request: async (signal) => {
             const params = new URLSearchParams({
                 market: 'perps',
                 symbol: asset,
             });
-            const res = await fetch(`/api/sodex/market?${params.toString()}`);
-            const data = await res.json();
+            const response = await fetchApi<ApiSuccessPayload<MarketRouteResponse>>(`/api/sodex/market?${params.toString()}`, {
+                signal,
+            });
+            const marketEntry = Array.isArray(response.items) ? response.items[0] : null;
+            return marketEntry?.price ? String(marketEntry.price).replace(/,/g, '') : null;
+        },
+    });
 
-            if (!data?.success) {
-                throw new Error(data?.error || 'Unable to load perps ticker');
-            }
+    const {
+        loading: executing,
+        error: tradeError,
+        mutate: executeTrade,
+    } = useApiMutation<ApiSuccessPayload<TradeRouteResponse>, { direction: 'LONG' | 'SHORT'; amount: number }>({
+        request: async (variables, signal) =>
+            fetchApi<ApiSuccessPayload<TradeRouteResponse>>('/api/trade', {
+                method: 'POST',
+                signal,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    symbol: asset,
+                    amount: variables.amount,
+                    direction: variables.direction,
+                }),
+            }),
+    });
 
-            const marketEntry = Array.isArray(data?.items) ? data.items[0] : null;
-
-            if (marketEntry?.price) {
-                setPrice(String(marketEntry.price).replace(/,/g, ''));
-                setError(null);
-            }
-        } catch (fetchError: any) {
-            setError(fetchError?.message || 'Unable to load perps ticker');
-        }
-    };
+    const orders = ordersData || [];
+    const error = validationError || tradeError || ordersError || priceError;
 
     const { status: wsStatus } = useSodexWebSocket<AllBookTickerMessage>({
         url: 'wss://mainnet-gw.sodex.dev/ws/perps',
@@ -126,63 +114,33 @@ export default function SodexTerminal({ target }: SodexTerminalProps) {
 
             const ask = Number(update.a);
             const bid = Number(update.b);
-            setPrice(
-                ((ask + bid) / 2).toLocaleString(undefined, {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                })
-            );
+            setPrice(((ask + bid) / 2).toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+            }));
         },
     });
 
-    useEffect(() => {
-        fetchLivePrice();
-        loadOrders();
-        const interval = setInterval(fetchLivePrice, 15000);
-        return () => clearInterval(interval);
-    }, [asset]);
-
     const handleTrade = async (direction: 'LONG' | 'SHORT') => {
-        if (!serverAuthenticated) {
-            setError(statusNote || 'SERVER_SIDE_SODEX_PRIVATE_KEY_NOT_CONFIGURED');
-            return;
-        }
-
         if (!amount || Number(amount) <= 0) {
-            setError('POSITION_SIZE_REQUIRED');
+            setValidationError('POSITION_SIZE_REQUIRED');
             return;
         }
-        
-        setExecuting(true);
-        setError(null);
 
         try {
-            const res = await fetch('/api/trade', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    symbol: asset,
-                    amount: parseFloat(amount),
-                    direction: direction
-                })
+            setValidationError(null);
+            await executeTrade({
+                direction,
+                amount: Number(amount),
             });
-
-            const data = await res.json();
-
-            if (data.success) {
-                await loadOrders();
-            } else {
-                throw new Error(data.error);
-            }
-        } catch (err: any) {
-            setError(err.message);
-        } finally {
-            setExecuting(false);
+            await reloadOrders();
+        } catch {
+            return;
         }
     };
 
     return (
-        <WidgetWrapper title="SODEX TERMINAL" icon={<Zap className="w-3 h-3 text-accent" />} loading={executing}>
+        <WidgetWrapper title="SODEX TERMINAL" icon={<Zap className="w-3 h-3 text-accent" />} loading={executing} error={error}>
             <div className="flex flex-col h-full gap-4">
                 {/* Balance & Price Header */}
                 <div className="flex justify-between items-center p-3 rounded-xl bg-white/[0.02] border border-white/10 shrink-0 relative overflow-hidden">
@@ -215,7 +173,12 @@ export default function SodexTerminal({ target }: SodexTerminalProps) {
                         <input 
                             type="number"
                             value={amount}
-                            onChange={(e) => setAmount(e.target.value)}
+                            onChange={(e) => {
+                                setAmount(e.target.value);
+                                if (validationError) {
+                                    setValidationError(null);
+                                }
+                            }}
                             step="0.000001"
                             className="bg-white/[0.03] border border-white/10 rounded-xl py-2 px-4 font-mono text-xs text-white focus:outline-none focus:border-primary/40 transition-all"
                         />
@@ -226,7 +189,7 @@ export default function SodexTerminal({ target }: SodexTerminalProps) {
                 <div className="grid grid-cols-2 gap-3 shrink-0">
                     <button 
                         onClick={() => handleTrade('LONG')}
-                        disabled={executing || !serverAuthenticated}
+                        disabled={executing}
                         className="flex items-center justify-center gap-2 py-3 bg-accent/20 hover:bg-accent/40 border border-accent/40 rounded-xl text-accent font-black text-[10px] uppercase tracking-widest transition-all hover:shadow-[0_0_15px_rgba(0,255,163,0.2)] disabled:opacity-50"
                     >
                         <ArrowUpRight className="w-3.5 h-3.5" />
@@ -234,16 +197,13 @@ export default function SodexTerminal({ target }: SodexTerminalProps) {
                     </button>
                     <button 
                         onClick={() => handleTrade('SHORT')}
-                        disabled={executing || !serverAuthenticated}
+                        disabled={executing}
                         className="flex items-center justify-center gap-2 py-3 bg-destructive/20 hover:bg-destructive/40 border border-destructive/40 rounded-xl text-destructive font-black text-[10px] uppercase tracking-widest transition-all hover:shadow-[0_0_15px_rgba(255,0,0,0.2)] disabled:opacity-50"
                     >
                         <ArrowDownRight className="w-3.5 h-3.5" />
                         OP_SHORT
                     </button>
                 </div>
-
-                {error && <div className="text-[8px] font-mono text-destructive uppercase tracking-widest text-center">{error}</div>}
-                {!error && statusNote && <div className="text-[8px] font-mono text-white/35 uppercase tracking-widest text-center">{statusNote}</div>}
 
                 {/* Order History Log */}
                 <div className="flex-1 flex flex-col min-h-0">
@@ -254,10 +214,6 @@ export default function SodexTerminal({ target }: SodexTerminalProps) {
                         {loadingOrders ? (
                             <div className="flex-1 flex items-center justify-center text-[8px] font-mono text-white/10 uppercase tracking-widest">
                                 LOADING_ORDER_HISTORY
-                            </div>
-                        ) : !serverAuthenticated ? (
-                            <div className="flex-1 flex items-center justify-center text-[8px] font-mono text-white/20 uppercase tracking-widest text-center">
-                                READ_ONLY_MARKET_MODE
                             </div>
                         ) : orders.length === 0 ? (
                             <div className="flex-1 flex items-center justify-center text-[8px] font-mono text-white/10 uppercase tracking-widest">
@@ -282,7 +238,7 @@ export default function SodexTerminal({ target }: SodexTerminalProps) {
                 <div className="flex items-center gap-1.5 pt-2 border-t border-white/5 opacity-40">
                     <RefreshCw className="w-2 h-2 animate-spin text-primary" />
                     <span className="text-[7px] font-mono text-white/50 uppercase tracking-widest">
-                        {serverAuthenticated ? 'EIP712_SIGNED_REST_ORDER_ROUTING_ENABLED' : 'READ_ONLY_MARKET_ROUTING_ACTIVE'}
+                        EIP712_SIGNED_REST_ORDER_ROUTING_ENABLED
                     </span>
                 </div>
             </div>

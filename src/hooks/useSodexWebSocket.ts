@@ -29,6 +29,7 @@ export function useSodexWebSocket<TMessage>({
     const reconnectAttemptsRef = useRef(0);
     const messageQueueRef = useRef<TMessage[]>([]);
     const lastActivityRef = useRef<number>(Date.now());
+    const intentionalCloseRef = useRef(false);
 
     const [status, setStatus] = useState<ConnectionStatus>('idle');
     const [messages, setMessages] = useState<TMessage[]>([]);
@@ -114,12 +115,14 @@ export function useSodexWebSocket<TMessage>({
         }
 
         clearTimers();
+        intentionalCloseRef.current = true;
         wsRef.current?.close();
         setStatus('connecting');
         setError(null);
 
         const socket = new WebSocket(url);
         wsRef.current = socket;
+        intentionalCloseRef.current = false;
 
         socket.onopen = () => {
             reconnectAttemptsRef.current = 0;
@@ -148,6 +151,12 @@ export function useSodexWebSocket<TMessage>({
 
             try {
                 const parsed = JSON.parse(event.data) as TMessage | { op?: string };
+                if ((parsed as { op?: string }).op === 'ping') {
+                    socket.send(JSON.stringify({ op: 'pong' }));
+                    lastActivityRef.current = Date.now();
+                    return;
+                }
+
                 if ((parsed as { op?: string }).op === 'pong') {
                     return;
                 }
@@ -165,7 +174,12 @@ export function useSodexWebSocket<TMessage>({
         };
 
         socket.onclose = () => {
+            clearTimers();
             setStatus('closed');
+            if (intentionalCloseRef.current) {
+                return;
+            }
+
             scheduleReconnect();
         };
     });
@@ -173,6 +187,7 @@ export function useSodexWebSocket<TMessage>({
     useEffect(() => {
         if (!enabled) {
             clearTimers();
+            intentionalCloseRef.current = true;
             wsRef.current?.close();
             wsRef.current = null;
             setStatus('idle');
@@ -183,6 +198,7 @@ export function useSodexWebSocket<TMessage>({
 
         return () => {
             clearTimers();
+            intentionalCloseRef.current = true;
             wsRef.current?.close();
             wsRef.current = null;
             setStatus('closed');

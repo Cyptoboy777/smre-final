@@ -1,36 +1,11 @@
-import { NextResponse } from 'next/server';
-import { getErrorMessage } from '@/lib/crypto-dashboard';
 import { fetchSodexPortfolio, getSodexServerAuthMessage, hasSodexServerAuth } from '@/lib/server/sodex';
+import { ensureServerConfiguration, handleRoute, jsonSuccess } from '@/lib/server/route-response';
 
 export async function GET() {
-    if (!hasSodexServerAuth()) {
-        return NextResponse.json({
-            success: true,
-            authenticated: false,
-            reason: getSodexServerAuthMessage(),
-            address: null,
-            spotAccountID: null,
-            perpsAccountID: null,
-            balances: [],
-            recentOrders: [],
-        });
-    }
-
-    try {
+    return handleRoute(async () => {
+        ensureServerConfiguration(hasSodexServerAuth(), getSodexServerAuthMessage() || 'SoDEX server auth is not configured');
         const portfolio = await fetchSodexPortfolio();
 
-        return NextResponse.json({
-            success: true,
-            authenticated: true,
-            ...portfolio,
-        });
-    } catch (error) {
-        return NextResponse.json(
-            {
-                success: false,
-                error: getErrorMessage(error),
-            },
-            { status: 500 }
-        );
-    }
+        return jsonSuccess(portfolio);
+    });
 }

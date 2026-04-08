@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { Activity, TrendingUp, TrendingDown } from 'lucide-react';
 import WidgetWrapper from '../WidgetWrapper';
 import { type MarketPulseItem } from '@/lib/crypto-dashboard';
 import { useSodexWebSocket } from '@/hooks/useSodexWebSocket';
+import { fetchApi } from '@/lib/client/api-client';
+import { type ApiSuccessPayload, type MarketRouteResponse } from '@/lib/api';
+import { useApiQuery } from '@/hooks/useApiQuery';
 
 const TRACKED_SYMBOLS = ['BTC-USD', 'ETH-USD', 'SOL-USD'];
 
@@ -19,30 +21,20 @@ type AllBookTickerMessage = {
 };
 
 export default function MarketPulse() {
-    const [prices, setPrices] = useState<MarketPulseItem[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const { data, loading, error, setData } = useApiQuery<MarketPulseItem[]>({
+        refreshIntervalMs: 20000,
+        request: async (signal) => {
+            const response = await fetchApi<ApiSuccessPayload<MarketRouteResponse>>('/api/sodex/market?market=perps', {
+                signal,
+            });
 
-    const fetchPulse = async () => {
-        try {
-            const res = await fetch('/api/sodex/market?market=perps');
-            const data = await res.json();
-            if (!data?.success) {
-                throw new Error(data?.error || 'Unable to load SoDEX market pulse');
-            }
-
-            const nextItems = Array.isArray(data.items)
-                ? data.items.filter((item: MarketPulseItem) => TRACKED_SYMBOLS.includes(item.symbol)).slice(0, 3)
+            return Array.isArray(response.items)
+                ? response.items.filter((item) => TRACKED_SYMBOLS.includes(item.symbol)).slice(0, 3)
                 : [];
+        },
+    });
 
-            setPrices(nextItems);
-            setError(null);
-        } catch (fetchError: any) {
-            setError(fetchError?.message || 'Unable to load SoDEX market pulse');
-        } finally {
-            setLoading(false);
-        }
-    };
+    const prices = data || [];
 
     useSodexWebSocket<AllBookTickerMessage>({
         url: 'wss://mainnet-gw.sodex.dev/ws/perps',
@@ -61,8 +53,10 @@ export default function MarketPulse() {
 
             const updates = message.data;
 
-            setPrices((current) => {
-                if (current.length === 0) {
+            setData((current) => {
+                const nextCurrent = current || [];
+
+                if (nextCurrent.length === 0) {
                     return updates
                         .filter((entry) => TRACKED_SYMBOLS.includes(entry.s))
                         .slice(0, 3)
@@ -85,7 +79,7 @@ export default function MarketPulse() {
                         });
                 }
 
-                return current.map((item) => {
+                return nextCurrent.map((item) => {
                     const update = updates.find((entry) => entry.s === item.symbol);
 
                     if (!update) {
@@ -109,12 +103,6 @@ export default function MarketPulse() {
             });
         },
     });
-
-    useEffect(() => {
-        fetchPulse();
-        const interval = setInterval(fetchPulse, 20000); // Pulse every 20s
-        return () => clearInterval(interval);
-    }, []);
 
     return (
         <WidgetWrapper title="MARKET PULSE" icon={<Activity className="w-3 h-3" />} loading={loading} error={error}>

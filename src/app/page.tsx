@@ -1,18 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState } from 'react';
 import { 
     Search, 
-    Bot, 
-    Zap, 
-    Shield, 
-    Wallet, 
-    Newspaper, 
-    Activity, 
-    LayoutDashboard,
     Cpu,
-    ArrowUpRight
 } from 'lucide-react';
 
 // Widget Components
@@ -22,32 +13,32 @@ import SecurityRadar from '@/components/widgets/SecurityRadar';
 import PortfolioVault from '@/components/widgets/PortfolioVault';
 import NewsStream from '@/components/widgets/NewsStream';
 import MarketPulse from '@/components/widgets/MarketPulse';
+import { useApiMutation } from '@/hooks/useApiMutation';
+import { fetchApi } from '@/lib/client/api-client';
+import { type AnalyzeRouteResponse, type ApiSuccessPayload } from '@/lib/api';
 
 export default function Dashboard() {
     const [query, setQuery] = useState('');
-    const [analysisData, setAnalysisData] = useState<any>(null);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const {
+        data: analysisData,
+        loading,
+        error,
+        mutate: runAnalysis,
+    } = useApiMutation<ApiSuccessPayload<AnalyzeRouteResponse>, string>({
+        request: async (searchTerm, signal) =>
+            fetchApi<ApiSuccessPayload<AnalyzeRouteResponse>>(`/api/analyze?${new URLSearchParams({ query: searchTerm }).toString()}`, {
+                signal,
+            }),
+    });
 
     const handleSearch = async (e?: React.FormEvent, overrideQuery?: string) => {
         if (e) e.preventDefault();
         const searchTerm = (overrideQuery ?? query).trim();
         if (!searchTerm) return;
 
-        setLoading(true);
-        setError(null);
-
         try {
-            const params = new URLSearchParams({ query: searchTerm });
-            const res = await fetch(`/api/analyze?${params.toString()}`);
-            const data = await res.json();
-            if (data.error) throw new Error(data.error);
-            setAnalysisData(data);
-        } catch (err: any) {
-            setError(err.message);
-        } finally {
-            setLoading(false);
-        }
+            await runAnalysis(searchTerm);
+        } catch {}
     };
 
     return (

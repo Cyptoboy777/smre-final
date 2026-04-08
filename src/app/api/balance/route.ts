@@ -1,23 +1,21 @@
-import { NextResponse } from 'next/server';
 import { ethers } from 'ethers';
 import { isWalletAddress } from '@/lib/crypto-dashboard';
-import { getErrorMessage } from '@/lib/crypto-dashboard';
+import { handleRoute, jsonError, jsonSuccess } from '@/lib/server/route-response';
 
 export async function GET(request: Request) {
-    const { searchParams } = new URL(request.url);
-    const address = searchParams.get('address')?.trim();
+    return handleRoute(async () => {
+        const { searchParams } = new URL(request.url);
+        const address = searchParams.get('address')?.trim();
 
-    if (!address || !isWalletAddress(address)) {
-        return NextResponse.json({ success: false, error: 'Invalid wallet address' }, { status: 400 });
-    }
+        if (!address || !isWalletAddress(address)) {
+            return jsonError('Invalid wallet address', 400);
+        }
 
-    try {
         const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL);
         const balanceWei = await provider.getBalance(address);
         const ethBalance = ethers.formatEther(balanceWei);
 
-        return NextResponse.json({
-            success: true,
+        return jsonSuccess({
             address,
             balances: [
                 {
@@ -29,13 +27,5 @@ export async function GET(request: Request) {
                 },
             ],
         });
-    } catch (error) {
-        return NextResponse.json(
-            {
-                success: false,
-                error: getErrorMessage(error),
-            },
-            { status: 500 }
-        );
-    }
+    });
 }

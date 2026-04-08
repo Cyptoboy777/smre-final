@@ -1,41 +1,26 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { Signal } from 'lucide-react';
 import WidgetWrapper from '../WidgetWrapper';
 import { type NewsItem } from '@/lib/crypto-dashboard';
+import { fetchApi } from '@/lib/client/api-client';
+import { type ApiSuccessPayload, type NewsRouteResponse } from '@/lib/api';
+import { useApiQuery } from '@/hooks/useApiQuery';
 
 interface NewsStreamProps {
     onTickerClick: (ticker: string) => void;
 }
 
 export default function NewsStream({ onTickerClick }: NewsStreamProps) {
-    const [news, setNews] = useState<NewsItem[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const { data, loading, error } = useApiQuery<NewsItem[]>({
+        refreshIntervalMs: 60000 * 5,
+        request: async (signal) => {
+            const response = await fetchApi<ApiSuccessPayload<NewsRouteResponse>>('/api/news', { signal });
+            return Array.isArray(response.items) ? response.items.slice(0, 8) : [];
+        },
+    });
 
-    const fetchNews = async () => {
-        try {
-            const res = await fetch('/api/news');
-            const data = await res.json();
-            if (!data?.success) {
-                throw new Error(data?.error || 'Unable to load CryptoPanic news');
-            }
-
-            setNews(Array.isArray(data.items) ? data.items.slice(0, 8) : []);
-            setError(null);
-        } catch (fetchError: any) {
-            setError(fetchError?.message || 'Unable to load CryptoPanic news');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchNews();
-        const interval = setInterval(fetchNews, 60000 * 5); // 5 min news check
-        return () => clearInterval(interval);
-    }, []);
+    const news = data || [];
 
     return (
         <WidgetWrapper
