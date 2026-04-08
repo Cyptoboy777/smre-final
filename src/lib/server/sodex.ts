@@ -173,15 +173,26 @@ const prunePayload = (value: unknown): unknown => {
 
 const compactJson = (value: unknown) => JSON.stringify(prunePayload(value));
 
-const parseResponseJson = (text: string) => {
+const getResponseSnippet = (text: string) => text.replace(/\s+/g, ' ').trim().slice(0, 140);
+
+const parseResponseJson = (response: Response, text: string) => {
     if (!text) {
         return {};
+    }
+
+    const contentType = response.headers.get('content-type')?.toLowerCase() || '';
+
+    if (!contentType.includes('application/json')) {
+        const snippet = getResponseSnippet(text);
+        throw new Error(
+            `SoDEX returned non-JSON response (${response.status}). ${snippet || 'Empty response body'}`
+        );
     }
 
     try {
         return JSON.parse(text) as unknown;
     } catch {
-        throw new Error('SoDEX returned invalid JSON');
+        throw new Error(`SoDEX returned invalid JSON (${response.status})`);
     }
 };
 
@@ -277,7 +288,7 @@ const sodexRequest = async <T>({
 
     const response = await fetch(url.toString(), init);
     const text = await response.text();
-    const json = parseResponseJson(text);
+    const json = parseResponseJson(response, text);
 
     if (!response.ok) {
         const envelope = json as RawSodexEnvelope<unknown>;
@@ -397,7 +408,7 @@ export const getSodexAccountContext = () => {
 export const fetchSodexTickers = async (market: SodexMarket, symbol?: string) => {
     const payload = await sodexRequest<unknown>({
         market,
-        path: symbol ? '/market/ticker' : '/market/tickers',
+        path: '/markets/tickers',
         query: {
             symbol,
         },
@@ -411,7 +422,7 @@ export const fetchSodexAccountBalances = async (market: SodexMarket) => {
     const accountID = market === 'spot' ? spotAccountID : perpsAccountID;
     const payload = await sodexRequest<unknown>({
         market,
-        path: '/account/balances',
+        path: `/accounts/${address}/balances`,
         query: {
             accountID,
         },
@@ -448,11 +459,11 @@ export const fetchSodexOrderHistory = async (
         endTime?: number;
     } = {}
 ) => {
-    const { spotAccountID, perpsAccountID } = getSodexAccountContext();
+    const { address, spotAccountID, perpsAccountID } = getSodexAccountContext();
     const accountID = market === 'spot' ? spotAccountID : perpsAccountID;
     const payload = await sodexRequest<unknown>({
         market,
-        path: '/trade/orders/history',
+        path: `/accounts/${address}/orders/history`,
         query: {
             accountID,
             symbol: options.symbol,

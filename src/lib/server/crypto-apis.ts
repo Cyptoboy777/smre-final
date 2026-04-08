@@ -76,13 +76,47 @@ const requiredEnv = (name: string) => {
     return value;
 };
 
-const safeJsonFetch = async <T>(url: string, init: RequestInit = {}): Promise<T> => {
-    const response = await fetch(url, { cache: 'no-store', ...init });
+const getResponseSnippet = (text: string) => text.replace(/\s+/g, ' ').trim().slice(0, 140);
+
+const safeJsonFetch = async <T>(url: string, init: RequestInit = {}, provider = 'Upstream API'): Promise<T> => {
+    const headers = new Headers(init.headers);
+
+    if (!headers.has('Accept')) {
+        headers.set('Accept', 'application/json');
+    }
+
+    const response = await fetch(url, {
+        cache: 'no-store',
+        ...init,
+        headers,
+    });
     const text = await response.text();
-    const json = text ? (JSON.parse(text) as T) : ({} as T);
+    const contentType = response.headers.get('content-type')?.toLowerCase() || '';
+
+    if (!text) {
+        if (!response.ok) {
+            throw new Error(`${provider} request failed (${response.status} ${response.statusText})`);
+        }
+
+        return {} as T;
+    }
+
+    if (!contentType.includes('application/json')) {
+        throw new Error(
+            `${provider} returned non-JSON response (${response.status}). ${getResponseSnippet(text) || 'Empty response body'}`
+        );
+    }
+
+    let json: T;
+
+    try {
+        json = JSON.parse(text) as T;
+    } catch {
+        throw new Error(`${provider} returned invalid JSON (${response.status})`);
+    }
 
     if (!response.ok) {
-        throw new Error(`${response.status} ${response.statusText}`);
+        throw new Error(`${provider} request failed (${response.status} ${response.statusText})`);
     }
 
     return json;
@@ -102,17 +136,21 @@ const getGoPlusAccessToken = async () => {
     const time = Math.floor(Date.now() / 1000);
     const sign = createHash('sha1').update(`${appKey}${time}${appSecret}`).digest('hex');
 
-    const tokenResponse = await safeJsonFetch<GoPlusAccessTokenResponse>('https://api.gopluslabs.io/api/v1/token', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
+    const tokenResponse = await safeJsonFetch<GoPlusAccessTokenResponse>(
+        'https://api.gopluslabs.io/api/v1/token',
+        {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                app_key: appKey,
+                sign,
+                time,
+            }),
         },
-        body: JSON.stringify({
-            app_key: appKey,
-            sign,
-            time,
-        }),
-    });
+        'GoPlus'
+    );
 
     const token =
         tokenResponse?.access_token ||
@@ -144,11 +182,15 @@ const getGoPlusAccessToken = async () => {
 
 const fetchGoPlusJson = async <T>(url: string) => {
     const token = await getGoPlusAccessToken();
-    return safeJsonFetch<T>(url, {
-        headers: {
-            Authorization: `Bearer ${token}`,
+    return safeJsonFetch<T>(
+        url,
+        {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
         },
-    });
+        'GoPlus'
+    );
 };
 
 const pickBestPair = (pairs: DexPair[] | undefined) => {
@@ -180,7 +222,13 @@ export const fetchCryptoPanicNews = async (query?: string): Promise<NewsItem[]> 
     }
 
     const data = await safeJsonFetch<CryptoPanicResponse>(
-        `https://cryptopanic.com/api/v1/posts/?${params.toString()}`
+        `https://cryptopanic.com/api/v1/posts/?${params.toString()}`,
+        {
+            headers: {
+                'User-Agent': 'SoSo-SMRE/1.0',
+            },
+        },
+        'CryptoPanic'
     );
 
     const items = data?.results?.slice(0, 8).map((item) => ({
@@ -256,7 +304,11 @@ const fetchWalletEthBalance = async (address: string) => {
 };
 
 const resolveDexPair = async (query: string) => {
-    const data = await safeJsonFetch<DexSearchResponse>(`${getDexBaseUrl()}/search?q=${encodeURIComponent(query)}`);
+    const data = await safeJsonFetch<DexSearchResponse>(
+        `${getDexBaseUrl()}/search?q=${encodeURIComponent(query)}`,
+        {},
+        'DexScreener'
+    );
     return pickBestPair(data?.pairs);
 };
 
