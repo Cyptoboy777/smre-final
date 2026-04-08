@@ -21,11 +21,21 @@ type AllBookTickerMessage = {
     }>;
 };
 
+type OrdersRouteResponse = {
+    success?: boolean;
+    authenticated?: boolean;
+    reason?: string;
+    orders?: SodexOrder[];
+    error?: string;
+};
+
 export default function SodexTerminal({ target }: SodexTerminalProps) {
     const [amount, setAmount] = useState('0.010000');
     const [price, setPrice] = useState<string | null>(null);
     const [executing, setExecuting] = useState(false);
     const [orders, setOrders] = useState<SodexOrder[]>([]);
+    const [serverAuthenticated, setServerAuthenticated] = useState(true);
+    const [statusNote, setStatusNote] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [loadingOrders, setLoadingOrders] = useState(true);
 
@@ -44,13 +54,23 @@ export default function SodexTerminal({ target }: SodexTerminalProps) {
                 limit: '8',
             });
             const res = await fetch(`/api/sodex/orders?${params.toString()}`);
-            const data = await res.json();
+            const data = (await res.json()) as OrdersRouteResponse;
 
             if (!data?.success) {
                 throw new Error(data?.error || 'Unable to load order history');
             }
 
-            setOrders(data.orders);
+            if (data.authenticated === false) {
+                setServerAuthenticated(false);
+                setStatusNote(data.reason || 'READ_ONLY_MARKET_MODE');
+                setOrders([]);
+                setError(null);
+                return;
+            }
+
+            setServerAuthenticated(true);
+            setStatusNote(null);
+            setOrders(data.orders || []);
             setError(null);
         } catch (fetchError: any) {
             setError(fetchError?.message || 'Unable to load order history');
@@ -123,6 +143,11 @@ export default function SodexTerminal({ target }: SodexTerminalProps) {
     }, [asset]);
 
     const handleTrade = async (direction: 'LONG' | 'SHORT') => {
+        if (!serverAuthenticated) {
+            setError(statusNote || 'SERVER_SIDE_SODEX_PRIVATE_KEY_NOT_CONFIGURED');
+            return;
+        }
+
         if (!amount || Number(amount) <= 0) {
             setError('POSITION_SIZE_REQUIRED');
             return;
@@ -201,7 +226,7 @@ export default function SodexTerminal({ target }: SodexTerminalProps) {
                 <div className="grid grid-cols-2 gap-3 shrink-0">
                     <button 
                         onClick={() => handleTrade('LONG')}
-                        disabled={executing}
+                        disabled={executing || !serverAuthenticated}
                         className="flex items-center justify-center gap-2 py-3 bg-accent/20 hover:bg-accent/40 border border-accent/40 rounded-xl text-accent font-black text-[10px] uppercase tracking-widest transition-all hover:shadow-[0_0_15px_rgba(0,255,163,0.2)] disabled:opacity-50"
                     >
                         <ArrowUpRight className="w-3.5 h-3.5" />
@@ -209,7 +234,7 @@ export default function SodexTerminal({ target }: SodexTerminalProps) {
                     </button>
                     <button 
                         onClick={() => handleTrade('SHORT')}
-                        disabled={executing}
+                        disabled={executing || !serverAuthenticated}
                         className="flex items-center justify-center gap-2 py-3 bg-destructive/20 hover:bg-destructive/40 border border-destructive/40 rounded-xl text-destructive font-black text-[10px] uppercase tracking-widest transition-all hover:shadow-[0_0_15px_rgba(255,0,0,0.2)] disabled:opacity-50"
                     >
                         <ArrowDownRight className="w-3.5 h-3.5" />
@@ -218,6 +243,7 @@ export default function SodexTerminal({ target }: SodexTerminalProps) {
                 </div>
 
                 {error && <div className="text-[8px] font-mono text-destructive uppercase tracking-widest text-center">{error}</div>}
+                {!error && statusNote && <div className="text-[8px] font-mono text-white/35 uppercase tracking-widest text-center">{statusNote}</div>}
 
                 {/* Order History Log */}
                 <div className="flex-1 flex flex-col min-h-0">
@@ -228,6 +254,10 @@ export default function SodexTerminal({ target }: SodexTerminalProps) {
                         {loadingOrders ? (
                             <div className="flex-1 flex items-center justify-center text-[8px] font-mono text-white/10 uppercase tracking-widest">
                                 LOADING_ORDER_HISTORY
+                            </div>
+                        ) : !serverAuthenticated ? (
+                            <div className="flex-1 flex items-center justify-center text-[8px] font-mono text-white/20 uppercase tracking-widest text-center">
+                                READ_ONLY_MARKET_MODE
                             </div>
                         ) : orders.length === 0 ? (
                             <div className="flex-1 flex items-center justify-center text-[8px] font-mono text-white/10 uppercase tracking-widest">
@@ -251,7 +281,9 @@ export default function SodexTerminal({ target }: SodexTerminalProps) {
                 {/* Signing Badge */}
                 <div className="flex items-center gap-1.5 pt-2 border-t border-white/5 opacity-40">
                     <RefreshCw className="w-2 h-2 animate-spin text-primary" />
-                    <span className="text-[7px] font-mono text-white/50 uppercase tracking-widest">EIP712_SIGNED_REST_ORDER_ROUTING_ENABLED</span>
+                    <span className="text-[7px] font-mono text-white/50 uppercase tracking-widest">
+                        {serverAuthenticated ? 'EIP712_SIGNED_REST_ORDER_ROUTING_ENABLED' : 'READ_ONLY_MARKET_ROUTING_ACTIVE'}
+                    </span>
                 </div>
             </div>
         </WidgetWrapper>

@@ -392,8 +392,8 @@ const deterministicWalletAnalysis = ({
 export const buildTokenAnalysis = async (input: string): Promise<AnalysisSnapshot> => {
     const query = input.toUpperCase();
     const [pair, news, perpsTickers, spotTickers] = await Promise.all([
-        resolveDexPair(query),
-        fetchCryptoPanicNews(query),
+        resolveDexPair(query).catch(() => null),
+        fetchCryptoPanicNews(query).catch(() => []),
         fetchSodexTickers('perps', `${query}-USD`).catch(() => []),
         fetchSodexTickers('spot', `v${query}_vUSDC`).catch(() => []),
     ]);
@@ -413,7 +413,12 @@ export const buildTokenAnalysis = async (input: string): Promise<AnalysisSnapsho
             ? await fetchTokenSecurity(
                   pair.baseToken.address,
                   pair.chainId === 'bsc' ? '56' : pair.chainId === 'polygon' ? '137' : '1'
-              )
+              ).catch(() => ({
+                  isSafe: true,
+                  status_text: 'SECURITY_DATA_UNAVAILABLE',
+                  flags: ['GoPlus token scan unavailable'],
+                  address: pair.baseToken?.address,
+              }))
             : {
                   isSafe: true,
                   status_text: 'NO CONTRACT SCAN',
@@ -459,10 +464,17 @@ export const buildTokenAnalysis = async (input: string): Promise<AnalysisSnapsho
 
 export const buildWalletAnalysis = async (address: string): Promise<AnalysisSnapshot> => {
     const [news, market, security, ethBalance] = await Promise.all([
-        fetchCryptoPanicNews(),
-        fetchSodexTickers('perps').then((items) => items.slice(0, 4)),
-        fetchAddressSecurity(address),
-        fetchWalletEthBalance(address),
+        fetchCryptoPanicNews().catch(() => []),
+        fetchSodexTickers('perps')
+            .then((items) => items.slice(0, 4))
+            .catch(() => []),
+        fetchAddressSecurity(address).catch(() => ({
+            isSafe: true,
+            status_text: 'SECURITY_DATA_UNAVAILABLE',
+            flags: ['GoPlus address security unavailable'],
+            address,
+        })),
+        fetchWalletEthBalance(address).catch(() => 0),
     ]);
 
     const prompt = [

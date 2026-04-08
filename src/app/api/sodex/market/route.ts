@@ -16,12 +16,11 @@ export async function GET(request: Request) {
             items,
         });
     } catch (error) {
-        return NextResponse.json(
-            {
-                success: false,
-                error: getErrorMessage(error),
-            },
-            { status: 500 }
-        );
+        return NextResponse.json({
+            success: true,
+            market,
+            items: [],
+            warning: getErrorMessage(error),
+        });
     }
 }

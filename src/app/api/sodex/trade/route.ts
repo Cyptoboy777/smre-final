@@ -1,8 +1,18 @@
 import { NextResponse } from 'next/server';
 import { getErrorMessage, normalizeNumericString } from '@/lib/crypto-dashboard';
-import { placeSodexPerpsOrder } from '@/lib/server/sodex';
+import { getSodexServerAuthMessage, hasSodexServerAuth, placeSodexPerpsOrder } from '@/lib/server/sodex';
 
 export async function POST(req: Request) {
+    if (!hasSodexServerAuth()) {
+        return NextResponse.json(
+            {
+                success: false,
+                error: getSodexServerAuthMessage(),
+            },
+            { status: 503 }
+        );
+    }
+
     try {
         const body = await req.json();
         const { symbol, amount, direction } = body;

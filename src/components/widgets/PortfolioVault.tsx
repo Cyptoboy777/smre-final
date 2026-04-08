@@ -3,7 +3,13 @@
 import { useEffect, useState } from 'react';
 import { Wallet, Activity, Shield } from 'lucide-react';
 import WidgetWrapper from '../WidgetWrapper';
-import { type PortfolioBalance, type PortfolioSnapshot, type SodexOrder, truncateAddress } from '@/lib/crypto-dashboard';
+import {
+    isWalletAddress,
+    type PortfolioBalance,
+    type PortfolioSnapshot,
+    type SodexOrder,
+    truncateAddress,
+} from '@/lib/crypto-dashboard';
 import { useSodexWebSocket } from '@/hooks/useSodexWebSocket';
 
 type AccountStateMessage = {
@@ -26,6 +32,25 @@ type AccountStateMessage = {
             ut?: number;
         }>;
     };
+};
+
+type PortfolioRouteResponse = {
+    success?: boolean;
+    authenticated?: boolean;
+    reason?: string;
+    address?: string | null;
+    spotAccountID?: number | null;
+    perpsAccountID?: number | null;
+    balances?: PortfolioBalance[];
+    recentOrders?: SodexOrder[];
+    error?: string;
+};
+
+type BalanceRouteResponse = {
+    success?: boolean;
+    address?: string;
+    balances?: PortfolioBalance[];
+    error?: string;
 };
 
 const normalizeBalance = (market: 'spot' | 'perps', item: { a?: string; t?: string; l?: string }): PortfolioBalance => {
@@ -98,8 +123,13 @@ const mergeRealtimeState = (
 
 export default function PortfolioVault() {
     const [portfolio, setPortfolio] = useState<PortfolioSnapshot | null>(null);
+    const [serverAuthenticated, setServerAuthenticated] = useState<boolean | null>(null);
+    const [walletAddress, setWalletAddress] = useState('');
+    const [readonlyAddress, setReadonlyAddress] = useState<string | null>(null);
+    const [readonlyBalances, setReadonlyBalances] = useState<PortfolioBalance[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [notice, setNotice] = useState<string | null>(null);
 
     const fetchPortfolio = async () => {
         setLoading(true);
@@ -107,16 +137,60 @@ export default function PortfolioVault() {
 
         try {
             const res = await fetch('/api/sodex/portfolio');
-            const data = await res.json();
+            const data = (await res.json()) as PortfolioRouteResponse;
 
             if (!data?.success) {
                 throw new Error(data?.error || 'Unable to load SoDEX portfolio');
             }
 
-            setPortfolio(data);
-            setError(null);
+            if (data.authenticated === false) {
+                setServerAuthenticated(false);
+                setPortfolio(null);
+                setNotice('READ_ONLY_WALLET_MODE_AVAILABLE');
+                return;
+            }
+
+            setServerAuthenticated(true);
+            setPortfolio({
+                address: data.address || '',
+                spotAccountID: data.spotAccountID || 0,
+                perpsAccountID: data.perpsAccountID || 0,
+                balances: data.balances || [],
+                recentOrders: data.recentOrders || [],
+                fetchedAt: new Date().toISOString(),
+            });
+            setNotice(null);
         } catch (fetchError: any) {
             setError(fetchError?.message || 'Unable to load SoDEX portfolio');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const loadReadonlyWallet = async () => {
+        const address = walletAddress.trim();
+
+        if (!isWalletAddress(address)) {
+            setError('ENTER_VALID_WALLET_ADDRESS');
+            return;
+        }
+
+        setLoading(true);
+        setError(null);
+
+        try {
+            const params = new URLSearchParams({ address });
+            const res = await fetch(`/api/balance?${params.toString()}`);
+            const data = (await res.json()) as BalanceRouteResponse;
+
+            if (!data?.success) {
+                throw new Error(data?.error || 'Unable to load wallet balance');
+            }
+
+            setReadonlyAddress(data.address || address);
+            setReadonlyBalances(data.balances || []);
+        } catch (fetchError: any) {
+            setError(fetchError?.message || 'Unable to load wallet balance');
         } finally {
             setLoading(false);
         }
@@ -128,7 +202,7 @@ export default function PortfolioVault() {
 
     useSodexWebSocket<AccountStateMessage>({
         url: 'wss://mainnet-gw.sodex.dev/ws/spot',
-        enabled: Boolean(portfolio?.address),
+        enabled: serverAuthenticated === true && Boolean(portfolio?.address),
         subscribeMessages: portfolio?.address
             ? [
                   {
@@ -141,7 +215,7 @@ export default function PortfolioVault() {
               ]
             : [],
         onMessage: (message) => {
-            if (message.channel !== 'accountState' || !message.data || !portfolio) {
+            if (message.channel !== 'accountState' || !message.data) {
                 return;
             }
 
@@ -151,7 +225,7 @@ export default function PortfolioVault() {
 
     useSodexWebSocket<AccountStateMessage>({
         url: 'wss://mainnet-gw.sodex.dev/ws/perps',
-        enabled: Boolean(portfolio?.address),
+        enabled: serverAuthenticated === true && Boolean(portfolio?.address),
         subscribeMessages: portfolio?.address
             ? [
                   {
@@ -164,7 +238,7 @@ export default function PortfolioVault() {
               ]
             : [],
         onMessage: (message) => {
-            if (message.channel !== 'accountState' || !message.data || !portfolio) {
+            if (message.channel !== 'accountState' || !message.data) {
                 return;
             }
 
@@ -175,92 +249,179 @@ export default function PortfolioVault() {
     return (
         <WidgetWrapper title="PORTFOLIO VAULT" icon={<Wallet className="w-3 h-3" />} loading={loading} error={error}>
             <div className="flex flex-col gap-4 h-full">
-                {!portfolio ? (
+                {serverAuthenticated === null ? (
                     <div className="flex-1 flex items-center justify-center text-[10px] font-mono text-white/30 uppercase tracking-widest">
-                        Loading authenticated account state...
+                        Loading portfolio state...
                     </div>
-                ) : (
-                    <div className="flex-1 flex flex-col gap-4 min-h-0">
-                        <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/5">
-                            <div className="flex flex-col">
-                                <span className="text-[8px] font-mono text-white/30 uppercase tracking-widest leading-none mb-1">
-                                    AUTHENTICATED_ADDR
-                                </span>
-                                <span className="text-[10px] font-mono text-white/80">{truncateAddress(portfolio.address)}</span>
-                            </div>
-                            <div className="text-right">
-                                <span className="text-[8px] font-mono text-white/30 uppercase tracking-widest leading-none mb-1">
-                                    ACCOUNTS
-                                </span>
-                                <div className="text-[10px] font-mono text-white/70">
-                                    S:{portfolio.spotAccountID} / P:{portfolio.perpsAccountID}
+                ) : serverAuthenticated ? (
+                    !portfolio ? (
+                        <div className="flex-1 flex items-center justify-center text-[10px] font-mono text-white/30 uppercase tracking-widest">
+                            Awaiting authenticated SoDEX account state...
+                        </div>
+                    ) : (
+                        <div className="flex-1 flex flex-col gap-4 min-h-0">
+                            <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/5">
+                                <div className="flex flex-col">
+                                    <span className="text-[8px] font-mono text-white/30 uppercase tracking-widest leading-none mb-1">
+                                        AUTHENTICATED_ADDR
+                                    </span>
+                                    <span className="text-[10px] font-mono text-white/80">{truncateAddress(portfolio.address)}</span>
+                                </div>
+                                <div className="text-right">
+                                    <span className="text-[8px] font-mono text-white/30 uppercase tracking-widest leading-none mb-1">
+                                        ACCOUNTS
+                                    </span>
+                                    <div className="text-[10px] font-mono text-white/70">
+                                        S:{portfolio.spotAccountID} / P:{portfolio.perpsAccountID}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <div className="flex items-center justify-between p-2 rounded-xl border border-white/5 bg-white/[0.015]">
-                            <span className="text-[8px] font-mono text-white/30 uppercase tracking-widest flex items-center gap-2">
-                                <Activity className="w-3 h-3 text-primary" />
-                                LIVE_ACCOUNT_STATE
-                            </span>
-                            <span className="text-[8px] font-mono text-accent uppercase tracking-widest">STREAM_SYNCED</span>
-                        </div>
+                            <div className="flex items-center justify-between p-2 rounded-xl border border-white/5 bg-white/[0.015]">
+                                <span className="text-[8px] font-mono text-white/30 uppercase tracking-widest flex items-center gap-2">
+                                    <Activity className="w-3 h-3 text-primary" />
+                                    LIVE_ACCOUNT_STATE
+                                </span>
+                                <span className="text-[8px] font-mono text-accent uppercase tracking-widest">STREAM_SYNCED</span>
+                            </div>
 
-                        <div className="flex-1 grid grid-cols-[1.3fr,0.9fr] gap-3 min-h-0">
-                            <div className="overflow-y-auto custom-scrollbar pr-1 flex flex-col gap-2 min-h-0">
-                                {portfolio.balances
-                                    .sort((left, right) => Number(right.total) - Number(left.total))
-                                    .map((coin) => (
-                                        <div
-                                            key={`${coin.market}-${coin.asset}`}
-                                            className="flex justify-between items-center p-2 rounded-lg bg-white/[0.01] border border-white/5 hover:bg-white/[0.03] transition-all"
-                                        >
-                                            <div className="flex flex-col">
-                                                <span className="text-[10px] font-bold text-white tracking-widest uppercase">
-                                                    {coin.asset}
-                                                </span>
-                                                <span className="text-[8px] font-mono text-white/35 uppercase tracking-widest">
-                                                    {coin.market}
-                                                </span>
+                            <div className="flex-1 grid grid-cols-[1.3fr,0.9fr] gap-3 min-h-0">
+                                <div className="overflow-y-auto custom-scrollbar pr-1 flex flex-col gap-2 min-h-0">
+                                    {portfolio.balances
+                                        .sort((left, right) => Number(right.total) - Number(left.total))
+                                        .map((coin) => (
+                                            <div
+                                                key={`${coin.market}-${coin.asset}`}
+                                                className="flex justify-between items-center p-2 rounded-lg bg-white/[0.01] border border-white/5 hover:bg-white/[0.03] transition-all"
+                                            >
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] font-bold text-white tracking-widest uppercase">
+                                                        {coin.asset}
+                                                    </span>
+                                                    <span className="text-[8px] font-mono text-white/35 uppercase tracking-widest">
+                                                        {coin.market}
+                                                    </span>
+                                                </div>
+                                                <div className="text-right">
+                                                    <div className="text-[10px] font-bold text-white tracking-widest uppercase">
+                                                        {coin.total}
+                                                    </div>
+                                                    <div className="text-[8px] font-mono text-white/35">
+                                                        F:{coin.free} L:{coin.locked}
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div className="text-right">
-                                                <div className="text-[10px] font-bold text-white tracking-widest uppercase">
-                                                    {coin.total}
-                                                </div>
-                                                <div className="text-[8px] font-mono text-white/35">
-                                                    F:{coin.free} L:{coin.locked}
-                                                </div>
+                                        ))}
+                                </div>
+
+                                <div className="overflow-y-auto custom-scrollbar pr-1 flex flex-col gap-2 min-h-0">
+                                    {portfolio.recentOrders.slice(0, 6).map((order) => (
+                                        <div
+                                            key={`${order.market}-${order.id}`}
+                                            className="p-2 rounded-lg bg-white/[0.01] border border-white/5"
+                                        >
+                                            <div className="flex items-center justify-between gap-2">
+                                                <span className={`text-[9px] font-bold tracking-widest uppercase ${order.side === 'BUY' ? 'text-accent' : 'text-destructive'}`}>
+                                                    {order.side}
+                                                </span>
+                                                <span className="text-[8px] font-mono text-white/35 uppercase">{order.market}</span>
+                                            </div>
+                                            <div className="mt-1 text-[9px] font-mono text-white/70">{order.symbol}</div>
+                                            <div className="mt-1 flex items-center justify-between text-[8px] font-mono text-white/35">
+                                                <span>{order.quantity || '--'} @ {order.price || 'MKT'}</span>
+                                                <span>{order.status}</span>
                                             </div>
                                         </div>
                                     ))}
-                            </div>
 
-                            <div className="overflow-y-auto custom-scrollbar pr-1 flex flex-col gap-2 min-h-0">
-                                {portfolio.recentOrders.slice(0, 6).map((order) => (
-                                    <div
-                                        key={`${order.market}-${order.id}`}
-                                        className="p-2 rounded-lg bg-white/[0.01] border border-white/5"
-                                    >
-                                        <div className="flex items-center justify-between gap-2">
-                                            <span className={`text-[9px] font-bold tracking-widest uppercase ${order.side === 'BUY' ? 'text-accent' : 'text-destructive'}`}>
-                                                {order.side}
-                                            </span>
-                                            <span className="text-[8px] font-mono text-white/35 uppercase">{order.market}</span>
+                                    {portfolio.recentOrders.length === 0 && (
+                                        <div className="flex-1 flex items-center justify-center text-[8px] font-mono text-white/20 uppercase tracking-widest">
+                                            No historical orders returned
                                         </div>
-                                        <div className="mt-1 text-[9px] font-mono text-white/70">{order.symbol}</div>
-                                        <div className="mt-1 flex items-center justify-between text-[8px] font-mono text-white/35">
-                                            <span>{order.quantity || '--'} @ {order.price || 'MKT'}</span>
-                                            <span>{order.status}</span>
-                                        </div>
-                                    </div>
-                                ))}
-
-                                {portfolio.recentOrders.length === 0 && (
-                                    <div className="flex-1 flex items-center justify-center text-[8px] font-mono text-white/20 uppercase tracking-widest">
-                                        No historical orders returned
-                                    </div>
-                                )}
+                                    )}
+                                </div>
                             </div>
+                        </div>
+                    )
+                ) : (
+                    <div className="flex-1 flex flex-col gap-4">
+                        <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
+                            <div className="flex items-center gap-2 text-[8px] font-mono text-white/35 uppercase tracking-widest">
+                                <Shield className="w-3 h-3 text-secondary" />
+                                {notice || 'READ_ONLY_WALLET_MODE'}
+                            </div>
+                            <p className="mt-2 text-[10px] font-mono text-white/60 leading-relaxed">
+                                Server-side SoDEX trading credentials are unavailable on this deployment, so this widget is using read-only on-chain wallet lookup.
+                            </p>
+                        </div>
+
+                        <div className="flex flex-col gap-2">
+                            <span className="text-[8px] font-mono text-white/30 uppercase tracking-widest">WALLET_ADDRESS</span>
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={walletAddress}
+                                    onChange={(event) => setWalletAddress(event.target.value)}
+                                    placeholder="0x..."
+                                    className="flex-1 bg-white/[0.03] border border-white/10 rounded-xl py-2 px-3 font-mono text-[10px] text-white focus:outline-none focus:border-primary/40 transition-all"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={loadReadonlyWallet}
+                                    className="px-3 py-2 rounded-xl bg-primary/80 hover:bg-primary text-black font-bold text-[10px] uppercase tracking-widest transition-all"
+                                >
+                                    LOAD
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 flex flex-col gap-2 min-h-0">
+                            {readonlyAddress ? (
+                                <div className="rounded-xl border border-white/5 bg-white/[0.015] p-3 flex flex-col gap-3">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[8px] font-mono text-white/30 uppercase tracking-widest">
+                                            WALLET
+                                        </span>
+                                        <span className="text-[10px] font-mono text-white/70">
+                                            {truncateAddress(readonlyAddress)}
+                                        </span>
+                                    </div>
+
+                                    {readonlyBalances.length === 0 ? (
+                                        <div className="text-[8px] font-mono text-white/25 uppercase tracking-widest text-center py-6">
+                                            No balances returned for this address
+                                        </div>
+                                    ) : (
+                                        readonlyBalances.map((coin) => (
+                                            <div
+                                                key={`${coin.market}-${coin.asset}`}
+                                                className="flex justify-between items-center p-2 rounded-lg bg-white/[0.01] border border-white/5"
+                                            >
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] font-bold text-white tracking-widest uppercase">
+                                                        {coin.asset}
+                                                    </span>
+                                                    <span className="text-[8px] font-mono text-white/35 uppercase">
+                                                        {coin.market}
+                                                    </span>
+                                                </div>
+                                                <div className="text-right">
+                                                    <div className="text-[10px] font-bold text-white tracking-widest uppercase">
+                                                        {coin.total}
+                                                    </div>
+                                                    <div className="text-[8px] font-mono text-white/35">
+                                                        F:{coin.free} L:{coin.locked}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="flex-1 flex items-center justify-center rounded-xl border border-white/5 bg-white/[0.02] text-[9px] font-mono text-white/25 uppercase tracking-widest text-center px-4">
+                                    Enter a wallet address to inspect on-chain balances
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}

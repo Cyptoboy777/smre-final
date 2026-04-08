@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getErrorMessage, normalizeNumericString } from '@/lib/crypto-dashboard';
-import { placeSodexPerpsOrder } from '@/lib/server/sodex';
+import { getSodexServerAuthMessage, hasSodexServerAuth, placeSodexPerpsOrder } from '@/lib/server/sodex';
 
 type TradeBody = {
     symbol?: string;
@@ -9,6 +9,16 @@ type TradeBody = {
 };
 
 export async function POST(request: Request) {
+    if (!hasSodexServerAuth()) {
+        return NextResponse.json(
+            {
+                success: false,
+                error: getSodexServerAuthMessage(),
+            },
+            { status: 503 }
+        );
+    }
+
     try {
         const body = (await request.json()) as TradeBody;
         const symbol = typeof body.symbol === 'string' && body.symbol.trim() ? body.symbol.trim().toUpperCase() : '';

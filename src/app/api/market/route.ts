@@ -15,12 +15,11 @@ export async function GET(request: Request) {
             source: 'sodex',
         });
     } catch (error) {
-        return NextResponse.json(
-            {
-                success: false,
-                error: getErrorMessage(error),
-            },
-            { status: 500 }
-        );
+        return NextResponse.json({
+            success: true,
+            items: [],
+            source: 'sodex',
+            warning: getErrorMessage(error),
+        });
     }
 }

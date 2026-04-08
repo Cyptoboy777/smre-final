@@ -120,6 +120,24 @@ const requiredEnv = (name: string) => {
     return value;
 };
 
+const hasEnv = (name: string) => Boolean(process.env[name]?.trim());
+
+export const hasSodexServerAuth = () =>
+    hasEnv('SODEX_API_PRIVATE_KEY') &&
+    (hasEnv('SODEX_ACCOUNT_ID') || (hasEnv('SODEX_SPOT_ACCOUNT_ID') && hasEnv('SODEX_PERPS_ACCOUNT_ID')));
+
+export const getSodexServerAuthMessage = () => {
+    if (!hasEnv('SODEX_API_PRIVATE_KEY')) {
+        return 'SERVER_SIDE_SODEX_PRIVATE_KEY_NOT_CONFIGURED';
+    }
+
+    if (!hasEnv('SODEX_ACCOUNT_ID') && !(hasEnv('SODEX_SPOT_ACCOUNT_ID') && hasEnv('SODEX_PERPS_ACCOUNT_ID'))) {
+        return 'SERVER_SIDE_SODEX_ACCOUNT_ID_NOT_CONFIGURED';
+    }
+
+    return null;
+};
+
 const getAccountID = (market: SodexMarket) => {
     const directKey = market === 'spot' ? 'SODEX_SPOT_ACCOUNT_ID' : 'SODEX_PERPS_ACCOUNT_ID';
     const fallbackKey = 'SODEX_ACCOUNT_ID';
