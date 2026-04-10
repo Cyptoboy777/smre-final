@@ -1,32 +1,41 @@
+"use client";
+
+import { useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { DashboardGrid } from "@/components/layout/DashboardGrid";
-import { MarketPulseScaffold } from "@/components/widgets/MarketPulseScaffold";
-import { NewsStreamScaffold } from "@/components/widgets/NewsStreamScaffold";
-import { PortfolioVaultScaffold } from "@/components/widgets/PortfolioVaultScaffold";
+import MarketPulse from "@/components/widgets/MarketPulse";
+import NewsStream from "@/components/widgets/NewsStream";
+import PortfolioVault from "@/components/widgets/PortfolioVault";
 import { QuantIntelligence } from "@/components/widgets/QuantIntelligence";
-import { SecurityRadarScaffold } from "@/components/widgets/SecurityRadarScaffold";
-import { Terminal } from "@/components/widgets/Terminal";
+import SecurityRadar from "@/components/widgets/SecurityRadar";
+import SodexTerminal from "@/components/widgets/SodexTerminal";
 
 export default function DashboardPage() {
+  const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
+
+  const handleTickerClick = (ticker: string) => {
+    setSelectedTicker(ticker);
+  };
+
   return (
     <AppShell>
       <DashboardGrid
         left={
           <>
-            <MarketPulseScaffold />
-            <NewsStreamScaffold />
+            <MarketPulse />
+            <NewsStream onTickerClick={handleTickerClick} />
           </>
         }
         center={
           <>
             <QuantIntelligence />
             <div className="grid gap-4 xl:grid-cols-2">
-              <SecurityRadarScaffold />
-              <PortfolioVaultScaffold />
+              <SecurityRadar data={null} loading={false} />
+              <PortfolioVault />
             </div>
           </>
         }
-        right={<Terminal />}
+        right={<SodexTerminal target={selectedTicker ? { symbol: selectedTicker } : null} />}
       />
     </AppShell>
   );

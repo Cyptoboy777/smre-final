@@ -62,17 +62,7 @@ export function QuantIntelligence() {
       loading={isLoading && !deferredSnapshot}
     >
       <div className="flex h-full flex-col overflow-hidden">
-        {!FEATURE_FLAGS.enableGroqRoutes ? (
-          <div className="flex flex-1 flex-col items-center justify-center text-center opacity-60 p-8">
-            <Sparkles className="mb-4 h-10 w-10 animate-pulse text-primary" />
-            <p className="text-[10px] font-mono uppercase tracking-[0.24em] text-white/65">
-              QUANT ENGINE STANDBY
-            </p>
-            <p className="mt-3 max-w-md text-sm leading-6 text-white/45">
-              Groq inference remains server-only. Enable the production route to stream institutional analysis here.
-            </p>
-          </div>
-        ) : isLoading && !deferredSnapshot ? (
+        {isLoading && !deferredSnapshot ? (
           <QuantLoadingState label={loadingLabel} />
         ) : error ? (
           <div className="flex flex-1 flex-col justify-center rounded-xl border border-red-400/15 bg-red-400/5 p-6">

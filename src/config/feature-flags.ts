@@ -1,5 +1,5 @@
 export const FEATURE_FLAGS = {
-  enableSodexRest: false,
-  enableSodexRealtime: false,
-  enableGroqRoutes: false,
+  enableSodexRest: true,
+  enableSodexRealtime: true,
+  enableGroqRoutes: true,
 } as const;
