@@ -12,45 +12,27 @@ import { useApiQuery } from '@/hooks/useApiQuery';
 const TRACKED_SYMBOLS = ['BTC-USD', 'ETH-USD', 'SOL-USD'];
 const PRICE_FLASH_MS = 700;
 
-type AllBookTickerMessage = {
+type MiniTickerMessage = {
     channel?: string;
-    type?: 'snapshot' | 'update';
     data?: Array<{
-        s: string;
-        a: string;
-        b: string;
+        s: string; // symbol
+        c: string; // last price
+        h: string; // high
+        l: string; // low
+        v: string; // volume
     }>;
 };
 
 type PriceFlashDirection = 'up' | 'down';
 
-const getDisplayPrice = (askPrice?: string, bidPrice?: string) => {
-    const ask = Number(askPrice);
-    const bid = Number(bidPrice);
-    const validAsk = Number.isFinite(ask) && ask > 0 ? ask : null;
-    const validBid = Number.isFinite(bid) && bid > 0 ? bid : null;
-
-    if (validAsk !== null && validBid !== null) {
-        return ((validAsk + validBid) / 2).toLocaleString(undefined, {
+const getDisplayPrice = (closePrice?: string) => {
+    const price = Number(closePrice);
+    if (Number.isFinite(price) && price > 0) {
+        return price.toLocaleString(undefined, {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
         });
     }
-
-    if (validAsk !== null) {
-        return validAsk.toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-        });
-    }
-
-    if (validBid !== null) {
-        return validBid.toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-        });
-    }
-
     return null;
 };
 
@@ -133,18 +115,18 @@ export default function MarketPulse() {
 
     const prices = data || [];
 
-    const stream = useSodexWebSocket<AllBookTickerMessage>({
+    const stream = useSodexWebSocket<MiniTickerMessage>({
         url: 'wss://mainnet-gw.sodex.dev/ws/perps',
         subscribeMessages: [
             {
                 op: 'subscribe',
                 params: {
-                    channel: 'allBookTicker',
+                    channel: 'allMiniTicker',
                 },
             },
         ],
         onMessage: (message) => {
-            if (message.channel !== 'allBookTicker' || !Array.isArray(message.data)) {
+            if (message.channel !== 'allMiniTicker' || !Array.isArray(message.data)) {
                 return;
             }
 
@@ -161,7 +143,7 @@ export default function MarketPulse() {
                             continue;
                         }
 
-                        const price = getDisplayPrice(entry.a, entry.b);
+                        const price = getDisplayPrice(entry.c);
                         if (!price) {
                             continue;
                         }
@@ -172,8 +154,9 @@ export default function MarketPulse() {
                             change: '+0.00%',
                             isUp: true,
                             market: 'perps' as const,
-                            bidPrice: entry.b,
-                            askPrice: entry.a,
+                            bidPrice: entry.c, // Fallback for last price
+                            askPrice: entry.c, // Fallback for last price
+                            volume24h: entry.v,
                         });
                     }
 
@@ -187,7 +170,7 @@ export default function MarketPulse() {
                         return item;
                     }
 
-                    const price = getDisplayPrice(update.a, update.b);
+                    const price = getDisplayPrice(update.c);
                     if (!price) {
                         return item;
                     }
@@ -202,8 +185,7 @@ export default function MarketPulse() {
                     return {
                         ...item,
                         price,
-                        bidPrice: update.b,
-                        askPrice: update.a,
+                        volume24h: update.v,
                     };
                 });
             });
