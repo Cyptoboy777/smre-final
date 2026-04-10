@@ -1,8 +1,14 @@
 'use client';
 
 import { startTransition, useEffect, useEffectEvent, useRef, useState } from 'react';
-
-type ConnectionStatus = 'idle' | 'connecting' | 'open' | 'reconnecting' | 'closed' | 'error';
+import {
+    getSodexWsManager,
+    SODEX_PERPS_WS_URL,
+    SODEX_SPOT_WS_URL,
+    type SodexSubscriptionMessage,
+    type SodexWireMessage,
+    type WsConnectionStatus,
+} from '@/lib/ws/ws-manager';
 
 type UseSodexWebSocketOptions<TMessage> = {
     url: string;
@@ -14,32 +20,43 @@ type UseSodexWebSocketOptions<TMessage> = {
     onMessage?: (message: TMessage) => void;
 };
 
+const inferMarketFromUrl = (url: string) => {
+    if (url === SODEX_SPOT_WS_URL || url.endsWith('/spot')) {
+        return 'spot' as const;
+    }
+
+    if (url === SODEX_PERPS_WS_URL || url.endsWith('/perps')) {
+        return 'perps' as const;
+    }
+
+    return null;
+};
+
+const getSubscribeChannel = (message: unknown) => {
+    if (!message || typeof message !== 'object') {
+        return undefined;
+    }
+
+    const params = (message as { params?: Record<string, unknown> }).params;
+    return typeof params?.channel === 'string' ? params.channel : undefined;
+};
+
 export function useSodexWebSocket<TMessage>({
     url,
     enabled = true,
     subscribeMessages = [],
-    heartbeatMs = 50000,
-    pongTimeoutMs = 15000,
     maxBufferedMessages = 50,
     onMessage,
 }: UseSodexWebSocketOptions<TMessage>) {
-    const wsRef = useRef<WebSocket | null>(null);
-    const subscribeMessagesRef = useRef(subscribeMessages);
-    const reconnectTimerRef = useRef<number | null>(null);
-    const heartbeatTimerRef = useRef<number | null>(null);
     const animationFrameRef = useRef<number | null>(null);
-    const reconnectAttemptsRef = useRef(0);
     const messageQueueRef = useRef<TMessage[]>([]);
-    const lastActivityRef = useRef<number>(Date.now());
-    const awaitingPongAtRef = useRef<number | null>(null);
-    const intentionalCloseRef = useRef(false);
+    const market = inferMarketFromUrl(url);
+    const subscribeMessagesKey = JSON.stringify(subscribeMessages);
 
-    const [status, setStatus] = useState<ConnectionStatus>('idle');
+    const [status, setStatus] = useState<WsConnectionStatus>('idle');
     const [messages, setMessages] = useState<TMessage[]>([]);
     const [lastMessageAt, setLastMessageAt] = useState<number | null>(null);
     const [error, setError] = useState<string | null>(null);
-
-    subscribeMessagesRef.current = subscribeMessages;
 
     const flushQueue = useEffectEvent(() => {
         if (messageQueueRef.current.length === 0) {
@@ -68,17 +85,7 @@ export function useSodexWebSocket<TMessage>({
         });
     });
 
-    const clearTimers = useEffectEvent(() => {
-        if (reconnectTimerRef.current !== null) {
-            window.clearTimeout(reconnectTimerRef.current);
-            reconnectTimerRef.current = null;
-        }
-
-        if (heartbeatTimerRef.current !== null) {
-            window.clearInterval(heartbeatTimerRef.current);
-            heartbeatTimerRef.current = null;
-        }
-
+    const clearUiTimers = useEffectEvent(() => {
         if (animationFrameRef.current !== null) {
             window.cancelAnimationFrame(animationFrameRef.current);
             animationFrameRef.current = null;
@@ -86,141 +93,63 @@ export function useSodexWebSocket<TMessage>({
     });
 
     const send = useEffectEvent((payload: unknown) => {
-        const socket = wsRef.current;
-
-        if (!socket || socket.readyState !== WebSocket.OPEN) {
+        if (!market) {
             return false;
         }
 
-        socket.send(JSON.stringify(payload));
-        lastActivityRef.current = Date.now();
-        return true;
-    });
-
-    const scheduleReconnect = useEffectEvent(() => {
-        if (!enabled) {
-            return;
-        }
-
-        clearTimers();
-        setStatus('reconnecting');
-        reconnectAttemptsRef.current += 1;
-        const delay = Math.min(30000, 1000 * 2 ** Math.min(reconnectAttemptsRef.current, 5));
-
-        reconnectTimerRef.current = window.setTimeout(() => {
-            connect();
-        }, delay);
-    });
-
-    const connect = useEffectEvent(() => {
-        if (!enabled) {
-            return;
-        }
-
-        clearTimers();
-        intentionalCloseRef.current = true;
-        wsRef.current?.close();
-        setStatus('connecting');
-        setError(null);
-
-        const socket = new WebSocket(url);
-        wsRef.current = socket;
-        intentionalCloseRef.current = false;
-
-        socket.onopen = () => {
-            reconnectAttemptsRef.current = 0;
-            lastActivityRef.current = Date.now();
-            awaitingPongAtRef.current = null;
-            setStatus('open');
-
-            for (const message of subscribeMessagesRef.current) {
-                socket.send(JSON.stringify(message));
-            }
-
-            heartbeatTimerRef.current = window.setInterval(() => {
-                if (socket.readyState !== WebSocket.OPEN) {
-                    return;
-                }
-
-                const now = Date.now();
-
-                if (
-                    awaitingPongAtRef.current !== null &&
-                    now - awaitingPongAtRef.current >= pongTimeoutMs &&
-                    now - lastActivityRef.current >= pongTimeoutMs
-                ) {
-                    socket.close();
-                    return;
-                }
-
-                if (awaitingPongAtRef.current === null && now - lastActivityRef.current >= heartbeatMs) {
-                    socket.send(JSON.stringify({ op: 'ping' }));
-                    awaitingPongAtRef.current = now;
-                }
-            }, 5000);
-        };
-
-        socket.onmessage = (event) => {
-            lastActivityRef.current = Date.now();
-            awaitingPongAtRef.current = null;
-            setLastMessageAt(lastActivityRef.current);
-
-            try {
-                const parsed = JSON.parse(event.data) as TMessage | { op?: string };
-                if ((parsed as { op?: string }).op === 'ping') {
-                    socket.send(JSON.stringify({ op: 'pong' }));
-                    lastActivityRef.current = Date.now();
-                    return;
-                }
-
-                if ((parsed as { op?: string }).op === 'pong') {
-                    return;
-                }
-
-                messageQueueRef.current.push(parsed as TMessage);
-                scheduleFlush();
-            } catch (parseError) {
-                setError(parseError instanceof Error ? parseError.message : 'Failed to parse websocket message');
-            }
-        };
-
-        socket.onerror = () => {
-            setStatus('error');
-            setError('WebSocket connection error');
-        };
-
-        socket.onclose = () => {
-            clearTimers();
-            awaitingPongAtRef.current = null;
-            setStatus('closed');
-            if (intentionalCloseRef.current) {
-                return;
-            }
-
-            scheduleReconnect();
-        };
+        return getSodexWsManager(market).send(payload);
     });
 
     useEffect(() => {
         if (!enabled) {
-            clearTimers();
-            intentionalCloseRef.current = true;
-            wsRef.current?.close();
-            wsRef.current = null;
             setStatus('idle');
             return;
         }
 
-        connect();
+        if (!market) {
+            setStatus('error');
+            setError(`Unsupported SoDEX websocket URL: ${url}`);
+            return;
+        }
+
+        setError(null);
+        const manager = getSodexWsManager(market);
+        const unsubscribes: Array<() => void> = [];
+
+        const attachSubscriber = (subscribeMessage?: SodexSubscriptionMessage) => {
+            const channel = subscribeMessage ? getSubscribeChannel(subscribeMessage) : undefined;
+
+            unsubscribes.push(
+                manager.subscribe<TMessage & SodexWireMessage>({
+                    channel,
+                    subscribeMessage,
+                    onStatusChange: (nextStatus) => setStatus(nextStatus),
+                    onMessage: (message) => {
+                        messageQueueRef.current.push(message as TMessage);
+                        setLastMessageAt(Date.now());
+                        scheduleFlush();
+                    },
+                }),
+            );
+        };
+
+        if (subscribeMessages.length === 0) {
+            attachSubscriber();
+        } else {
+            for (const subscribeMessage of subscribeMessages) {
+                attachSubscriber(subscribeMessage as SodexSubscriptionMessage);
+            }
+        }
+
+        setStatus(manager.currentStatus);
 
         return () => {
-            clearTimers();
-            intentionalCloseRef.current = true;
-            wsRef.current?.close();
-            wsRef.current = null;
-            setStatus('closed');
+            clearUiTimers();
+            for (const unsubscribe of unsubscribes) {
+                unsubscribe();
+            }
         };
-    }, [connect, clearTimers, enabled, url, heartbeatMs, pongTimeoutMs]);
+    }, [clearUiTimers, enabled, market, scheduleFlush, subscribeMessagesKey, url]);
 
     return {
         status,

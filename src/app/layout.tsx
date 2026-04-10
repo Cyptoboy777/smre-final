@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
+import { APP_DESCRIPTION, APP_NAME, APP_TITLE } from "@/config/app";
+import { SWRProvider } from "@/lib/providers/SWRProvider";
 
-const inter = Inter({ 
+const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
 });
@@ -13,32 +15,27 @@ const fontSans = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "soso-smre | Institutional Terminal",
-  description: "Advanced Crypto Intelligence and Trading Command Center",
+  title: APP_TITLE,
+  applicationName: APP_NAME,
+  description: APP_DESCRIPTION,
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
+type RootLayoutProps = Readonly<{
   children: React.ReactNode;
-}>) {
+}>;
+
+export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="en" className="dark scroll-smooth">
-      <body className={`${inter.variable} ${fontSans.variable} font-sans selection:bg-cyan-500/30 selection:text-white`}>
-        {/* Cyber Overlay Background Elements */}
-        <div className="fixed inset-0 pointer-events-none z-[-1] overflow-hidden">
-          {/* Neon Gradients */}
-          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-cyan-600/10 blur-[150px] rounded-full opacity-60" />
-          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600/10 blur-[150px] rounded-full opacity-60" />
-          
-          {/* Subtle Scan Lines */}
-          <div className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_0%,rgba(255,255,255,0.01)_50%,transparent_100%)] bg-[length:100%_4px] pointer-events-none opacity-20" />
-        </div>
-
-        {/* Global Page Container */}
-        <main className="min-h-screen relative flex flex-col p-2 md:p-4 lg:p-6">
-          {children}
-        </main>
+      <body
+        className={[
+          inter.variable,
+          fontSans.variable,
+          "min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.16),_transparent_35%),radial-gradient(circle_at_bottom_right,_rgba(251,191,36,0.14),_transparent_30%),#04070d]",
+          "font-sans text-white selection:bg-cyan-500/30 selection:text-white",
+        ].join(" ")}
+      >
+        <SWRProvider>{children}</SWRProvider>
       </body>
     </html>
   );

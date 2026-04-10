@@ -1,14 +1,11 @@
-import { fetchSodexPortfolio, getSodexServerAuthMessage, hasSodexServerAuth } from '@/lib/server/sodex';
-import { ensureServerConfiguration, handleRoute, jsonSuccess } from '@/lib/server/route-response';
+import { jsonNotImplemented } from "@/lib/server/route-response";
+
+export const runtime = "nodejs";
 
 export async function GET() {
-    return handleRoute(async () => {
-        ensureServerConfiguration(hasSodexServerAuth(), getSodexServerAuthMessage() || 'SoDEX server auth is not configured');
-        const portfolio = await fetchSodexPortfolio();
-
-        return jsonSuccess({
-            address: portfolio.address,
-            balances: portfolio.balances,
-        });
-    });
+  return jsonNotImplemented({
+    route: "/api/sodex/balance",
+    provider: "sodex",
+    message: "Phase 1 scaffold complete. Sodex balance query is deferred.",
+  });
 }

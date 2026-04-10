@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { Wallet, Activity } from 'lucide-react';
 import WidgetWrapper from '../WidgetWrapper';
 import {
@@ -33,6 +34,62 @@ type AccountStateMessage = {
             ut?: number;
         }>;
     };
+};
+
+const RAW_INTEGER_PATTERN = /^-?\d+$/;
+const DECIMALS_FALLBACK = 18;
+
+const numberFormatter = new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 4,
+});
+
+const scaleRawInteger = (value: string, decimals = DECIMALS_FALLBACK, maxFractionDigits = 4) => {
+    const negative = value.startsWith('-');
+    const unsigned = negative ? value.slice(1) : value;
+    const padded = unsigned.padStart(decimals + 1, '0');
+    const integerPart = padded.slice(0, -decimals).replace(/^0+(?=\d)/, '') || '0';
+    const fractionPart = padded.slice(-decimals).replace(/0+$/, '').slice(0, maxFractionDigits);
+    const wholeWithCommas = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+    return `${negative ? '-' : ''}${wholeWithCommas}${fractionPart ? `.${fractionPart}` : ''}`;
+};
+
+const formatTokenAmount = (value?: string, maxFractionDigits = 4) => {
+    if (!value) {
+        return '--';
+    }
+
+    const normalized = value.replace(/,/g, '').trim();
+
+    if (!normalized) {
+        return '--';
+    }
+
+    if (RAW_INTEGER_PATTERN.test(normalized) && normalized.replace('-', '').length > 12) {
+        return scaleRawInteger(normalized, DECIMALS_FALLBACK, maxFractionDigits);
+    }
+
+    const numeric = Number(normalized);
+    if (Number.isFinite(numeric)) {
+        return numberFormatter.format(numeric);
+    }
+
+    return normalized;
+};
+
+const useTypingPrompt = (label: string) => {
+    const [frame, setFrame] = useState(0);
+
+    useEffect(() => {
+        const intervalId = window.setInterval(() => {
+            setFrame((current) => (current + 1) % 4);
+        }, 280);
+
+        return () => window.clearInterval(intervalId);
+    }, []);
+
+    return `${label}${'.'.repeat(frame)}`;
 };
 
 const normalizeBalance = (market: 'spot' | 'perps', item: { a?: string; t?: string; l?: string }): PortfolioBalance => {
@@ -105,7 +162,47 @@ const mergeRealtimeState = (
     };
 };
 
+function VaultSkeleton({ label }: { label: string }) {
+    return (
+        <div className="flex flex-1 flex-col gap-4">
+            <div className="rounded-xl border border-white/5 bg-white/[0.02] px-3 py-2 text-[10px] font-mono uppercase tracking-widest text-cyan-200/65 animate-pulse">
+                {label}
+            </div>
+            <div className="grid flex-1 grid-cols-[1.3fr,0.9fr] gap-3 min-h-0">
+                <div className="space-y-2">
+                    {Array.from({ length: 5 }).map((_, index) => (
+                        <div
+                            key={`balance-${index}`}
+                            className="rounded-lg border border-white/5 bg-white/[0.02] p-3 animate-pulse"
+                        >
+                            <div className="h-2 w-14 rounded-full bg-white/10" />
+                            <div className="mt-3 h-4 w-24 rounded-full bg-white/10" />
+                            <div className="mt-2 h-2 w-20 rounded-full bg-white/10" />
+                        </div>
+                    ))}
+                </div>
+                <div className="space-y-2">
+                    {Array.from({ length: 4 }).map((_, index) => (
+                        <div
+                            key={`order-${index}`}
+                            className="rounded-lg border border-white/5 bg-white/[0.02] p-3 animate-pulse"
+                        >
+                            <div className="flex items-center justify-between">
+                                <div className="h-2 w-10 rounded-full bg-white/10" />
+                                <div className="h-2 w-12 rounded-full bg-white/10" />
+                            </div>
+                            <div className="mt-3 h-3 w-16 rounded-full bg-white/10" />
+                            <div className="mt-2 h-2 w-full rounded-full bg-white/10" />
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export default function PortfolioVault() {
+    const syncingLabel = useTypingPrompt('SYNCING VAULT');
     const { data: portfolio, loading, error, setData: setPortfolio } = useApiQuery<PortfolioSnapshot>({
         request: async (signal) => {
             const response = await fetchApi<ApiSuccessPayload<PortfolioRouteResponse>>('/api/sodex/portfolio', {
@@ -176,13 +273,16 @@ export default function PortfolioVault() {
                 ? 'STREAM_DEGRADED'
                 : 'CONNECTING';
 
+    const sortedBalances = [...(portfolio?.balances || [])].sort(
+        (left, right) =>
+            Number(right.total.replace(/,/g, '')) - Number(left.total.replace(/,/g, ''))
+    );
+
     return (
-        <WidgetWrapper title="PORTFOLIO VAULT" icon={<Wallet className="w-3 h-3" />} loading={loading} error={error}>
+        <WidgetWrapper title="PORTFOLIO VAULT" icon={<Wallet className="w-3 h-3" />} loading={loading && !portfolio}>
             <div className="flex flex-col gap-4 h-full">
                 {!portfolio ? (
-                    <div className="flex-1 flex items-center justify-center text-[10px] font-mono text-white/30 uppercase tracking-widest">
-                        Loading portfolio state...
-                    </div>
+                    <VaultSkeleton label={syncingLabel} />
                 ) : (
                     <div className="flex-1 flex flex-col gap-4 min-h-0">
                         <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/5">
@@ -220,11 +320,20 @@ export default function PortfolioVault() {
                             </span>
                         </div>
 
+                        {error && (
+                            <div className="rounded-xl border border-yellow-400/15 bg-yellow-400/5 px-3 py-2 text-[9px] font-mono uppercase tracking-widest text-yellow-200/80">
+                                REST portfolio sync degraded. Displaying latest available vault state.
+                            </div>
+                        )}
+
                         <div className="flex-1 grid grid-cols-[1.3fr,0.9fr] gap-3 min-h-0">
                             <div className="overflow-y-auto custom-scrollbar pr-1 flex flex-col gap-2 min-h-0">
-                                {[...portfolio.balances]
-                                    .sort((left, right) => Number(right.total) - Number(left.total))
-                                    .map((coin) => (
+                                {sortedBalances.length === 0 ? (
+                                    <div className="flex-1 flex items-center justify-center rounded-xl border border-white/5 bg-white/[0.02] text-[9px] font-mono uppercase tracking-widest text-white/30">
+                                        {syncingLabel}
+                                    </div>
+                                ) : (
+                                    sortedBalances.map((coin) => (
                                         <div
                                             key={`${coin.market}-${coin.asset}`}
                                             className="flex justify-between items-center p-2 rounded-lg bg-white/[0.01] border border-white/5 hover:bg-white/[0.03] transition-all"
@@ -239,40 +348,43 @@ export default function PortfolioVault() {
                                             </div>
                                             <div className="text-right">
                                                 <div className="text-[10px] font-bold text-white tracking-widest uppercase">
-                                                    {coin.total}
+                                                    {formatTokenAmount(coin.total)}
                                                 </div>
                                                 <div className="text-[8px] font-mono text-white/35">
-                                                    F:{coin.free} L:{coin.locked}
+                                                    F:{formatTokenAmount(coin.free)} L:{formatTokenAmount(coin.locked)}
                                                 </div>
                                             </div>
                                         </div>
-                                    ))}
+                                    ))
+                                )}
                             </div>
 
                             <div className="overflow-y-auto custom-scrollbar pr-1 flex flex-col gap-2 min-h-0">
-                                {portfolio.recentOrders.slice(0, 6).map((order) => (
-                                    <div
-                                        key={`${order.market}-${order.id}`}
-                                        className="p-2 rounded-lg bg-white/[0.01] border border-white/5"
-                                    >
-                                        <div className="flex items-center justify-between gap-2">
-                                            <span className={`text-[9px] font-bold tracking-widest uppercase ${order.side === 'BUY' ? 'text-accent' : 'text-destructive'}`}>
-                                                {order.side}
-                                            </span>
-                                            <span className="text-[8px] font-mono text-white/35 uppercase">{order.market}</span>
-                                        </div>
-                                        <div className="mt-1 text-[9px] font-mono text-white/70">{order.symbol}</div>
-                                        <div className="mt-1 flex items-center justify-between text-[8px] font-mono text-white/35">
-                                            <span>{order.quantity || '--'} @ {order.price || 'MKT'}</span>
-                                            <span>{order.status}</span>
-                                        </div>
-                                    </div>
-                                ))}
-
-                                {portfolio.recentOrders.length === 0 && (
+                                {portfolio.recentOrders.length === 0 ? (
                                     <div className="flex-1 flex items-center justify-center text-[8px] font-mono text-white/20 uppercase tracking-widest">
                                         No historical orders returned
                                     </div>
+                                ) : (
+                                    portfolio.recentOrders.slice(0, 6).map((order) => (
+                                        <div
+                                            key={`${order.market}-${order.id}`}
+                                            className="p-2 rounded-lg bg-white/[0.01] border border-white/5"
+                                        >
+                                            <div className="flex items-center justify-between gap-2">
+                                                <span className={`text-[9px] font-bold tracking-widest uppercase ${order.side === 'BUY' ? 'text-accent' : 'text-destructive'}`}>
+                                                    {order.side}
+                                                </span>
+                                                <span className="text-[8px] font-mono text-white/35 uppercase">{order.market}</span>
+                                            </div>
+                                            <div className="mt-1 text-[9px] font-mono text-white/70">{order.symbol}</div>
+                                            <div className="mt-1 flex items-center justify-between text-[8px] font-mono text-white/35">
+                                                <span>
+                                                    {formatTokenAmount(order.quantity)} @ {order.price ? formatTokenAmount(order.price, 2) : 'MKT'}
+                                                </span>
+                                                <span>{order.status}</span>
+                                            </div>
+                                        </div>
+                                    ))
                                 )}
                             </div>
                         </div>

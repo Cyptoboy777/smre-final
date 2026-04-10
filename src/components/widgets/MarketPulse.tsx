@@ -1,6 +1,7 @@
 'use client';
 
-import { Activity, TrendingUp, TrendingDown } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Activity, TrendingDown, TrendingUp } from 'lucide-react';
 import WidgetWrapper from '../WidgetWrapper';
 import { type MarketPulseItem } from '@/lib/crypto-dashboard';
 import { useSodexWebSocket } from '@/hooks/useSodexWebSocket';
@@ -9,6 +10,7 @@ import { type ApiSuccessPayload, type MarketRouteResponse } from '@/lib/api';
 import { useApiQuery } from '@/hooks/useApiQuery';
 
 const TRACKED_SYMBOLS = ['BTC-USD', 'ETH-USD', 'SOL-USD'];
+const PRICE_FLASH_MS = 700;
 
 type AllBookTickerMessage = {
     channel?: string;
@@ -19,6 +21,8 @@ type AllBookTickerMessage = {
         b: string;
     }>;
 };
+
+type PriceFlashDirection = 'up' | 'down';
 
 const getDisplayPrice = (askPrice?: string, bidPrice?: string) => {
     const ask = Number(askPrice);
@@ -50,7 +54,43 @@ const getDisplayPrice = (askPrice?: string, bidPrice?: string) => {
     return null;
 };
 
+const parseDisplayedPrice = (value?: string) => {
+    const numeric = Number(value?.replace(/,/g, ''));
+    return Number.isFinite(numeric) ? numeric : null;
+};
+
+function MarketPulseSkeleton() {
+    return (
+        <div className="grid grid-cols-1 gap-2 h-full">
+            <div className="flex items-center justify-end text-[8px] font-mono uppercase tracking-widest text-white/25">
+                SYNCING ORDER BOOK...
+            </div>
+            {TRACKED_SYMBOLS.map((symbol) => (
+                <div
+                    key={symbol}
+                    className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] p-3 animate-pulse"
+                >
+                    <div className="flex items-center gap-3">
+                        <div className="h-8 w-1 rounded-full bg-white/10" />
+                        <div className="space-y-2">
+                            <div className="h-2 w-16 rounded-full bg-white/10" />
+                            <div className="h-4 w-24 rounded-full bg-white/10" />
+                        </div>
+                    </div>
+                    <div className="space-y-2 text-right">
+                        <div className="h-3 w-14 rounded-full bg-white/10" />
+                        <div className="h-2 w-10 rounded-full bg-white/10" />
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}
+
 export default function MarketPulse() {
+    const [priceFlashMap, setPriceFlashMap] = useState<Record<string, PriceFlashDirection | undefined>>({});
+    const flashTimeoutRef = useRef<Record<string, number>>({});
+
     const { data, loading, error, setData } = useApiQuery<MarketPulseItem[]>({
         request: async (signal) => {
             const response = await fetchApi<ApiSuccessPayload<MarketRouteResponse>>('/api/sodex/market?market=perps', {
@@ -62,6 +102,34 @@ export default function MarketPulse() {
                 : [];
         },
     });
+
+    useEffect(() => {
+        return () => {
+            for (const timeoutId of Object.values(flashTimeoutRef.current)) {
+                window.clearTimeout(timeoutId);
+            }
+        };
+    }, []);
+
+    const triggerPriceFlash = (symbol: string, direction: PriceFlashDirection) => {
+        const timeoutId = flashTimeoutRef.current[symbol];
+        if (timeoutId) {
+            window.clearTimeout(timeoutId);
+        }
+
+        setPriceFlashMap((current) => ({
+            ...current,
+            [symbol]: direction,
+        }));
+
+        flashTimeoutRef.current[symbol] = window.setTimeout(() => {
+            setPriceFlashMap((current) => {
+                const next = { ...current };
+                delete next[symbol];
+                return next;
+            });
+        }, PRICE_FLASH_MS);
+    };
 
     const prices = data || [];
 
@@ -93,21 +161,20 @@ export default function MarketPulse() {
                             continue;
                         }
 
-                            const price = getDisplayPrice(entry.a, entry.b);
+                        const price = getDisplayPrice(entry.a, entry.b);
+                        if (!price) {
+                            continue;
+                        }
 
-                            if (!price) {
-                                continue;
-                            }
-
-                            seededItems.push({
-                                symbol: entry.s,
-                                price,
-                                change: '+0.00%',
-                                isUp: true,
-                                market: 'perps' as const,
-                                bidPrice: entry.b,
-                                askPrice: entry.a,
-                            });
+                        seededItems.push({
+                            symbol: entry.s,
+                            price,
+                            change: '+0.00%',
+                            isUp: true,
+                            market: 'perps' as const,
+                            bidPrice: entry.b,
+                            askPrice: entry.a,
+                        });
                     }
 
                     return seededItems;
@@ -121,9 +188,15 @@ export default function MarketPulse() {
                     }
 
                     const price = getDisplayPrice(update.a, update.b);
-
                     if (!price) {
                         return item;
+                    }
+
+                    const previousPrice = parseDisplayedPrice(item.price);
+                    const nextPrice = parseDisplayedPrice(price);
+
+                    if (previousPrice !== null && nextPrice !== null && nextPrice !== previousPrice) {
+                        triggerPriceFlash(item.symbol, nextPrice > previousPrice ? 'up' : 'down');
                     }
 
                     return {
@@ -146,34 +219,72 @@ export default function MarketPulse() {
                 ? 'DEGRADED'
                 : 'BOOTING';
 
+    const inlineError =
+        prices.length === 0 && error
+            ? 'REST bootstrap unavailable. Waiting for live SoDEX price stream.'
+            : null;
+
     return (
-        <WidgetWrapper title="MARKET PULSE" icon={<Activity className="w-3 h-3" />} loading={loading} error={error}>
-            <div className="grid grid-cols-1 gap-2 h-full">
-                <div className="flex items-center justify-end text-[8px] font-mono uppercase tracking-widest text-white/40">
-                    {streamLabel}
-                </div>
-                {prices.length === 0 ? (
-                    <div className="flex-1 flex items-center justify-center rounded-xl border border-white/5 bg-white/[0.02] text-[9px] font-mono text-white/30 uppercase tracking-widest text-center px-4">
-                        Awaiting live SoDEX market data
+        <WidgetWrapper
+            title="MARKET PULSE"
+            icon={<Activity className="w-3 h-3" />}
+            loading={loading && prices.length === 0}
+        >
+            {prices.length === 0 ? (
+                <div className="flex flex-1 flex-col gap-3">
+                    <MarketPulseSkeleton />
+                    <div className="rounded-xl border border-white/5 bg-white/[0.02] px-3 py-2 text-[9px] font-mono uppercase tracking-widest text-white/35">
+                        {inlineError ?? 'Awaiting live SoDEX market data...'}
                     </div>
-                ) : (
-                    prices.map((asset) => (
-                        <div key={asset.symbol} className="flex items-center justify-between p-2 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/5 transition-all">
-                            <div className="flex items-center gap-3">
-                                <div className={`w-1 h-8 rounded-full ${asset.isUp ? 'bg-accent' : 'bg-destructive'}`} />
-                                <div>
-                                    <span className="text-[10px] font-bold text-white/40 font-mono tracking-widest">{asset.symbol}</span>
-                                    <p className="text-sm font-bold text-white font-mono">${asset.price}</p>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 gap-2 h-full">
+                    <div className="flex items-center justify-between text-[8px] font-mono uppercase tracking-widest">
+                        <span className="text-white/25">
+                            {error ? 'REST FALLBACK DEGRADED' : 'INSTITUTIONAL FEED ONLINE'}
+                        </span>
+                        <span className="text-white/40">{streamLabel}</span>
+                    </div>
+                    {prices.map((asset) => {
+                        const flashDirection = priceFlashMap[asset.symbol];
+
+                        return (
+                            <div
+                                key={asset.symbol}
+                                className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] p-2 transition-all hover:bg-white/5"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className={`w-1 h-8 rounded-full ${asset.isUp ? 'bg-accent' : 'bg-destructive'}`} />
+                                    <div>
+                                        <span className="text-[10px] font-bold text-white/40 font-mono tracking-widest">
+                                            {asset.symbol}
+                                        </span>
+                                        <p
+                                            className={[
+                                                'text-sm font-bold font-mono text-white transition-colors',
+                                                flashDirection === 'up' ? 'price-flash-up' : '',
+                                                flashDirection === 'down' ? 'price-flash-down' : '',
+                                            ].join(' ')}
+                                        >
+                                            ${asset.price}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div
+                                    className={`flex items-center gap-1 text-[10px] font-bold font-mono ${asset.isUp ? 'text-accent neon-glow-green' : 'text-destructive'}`}
+                                >
+                                    {asset.isUp ? (
+                                        <TrendingUp className="w-3 h-3" />
+                                    ) : (
+                                        <TrendingDown className="w-3 h-3" />
+                                    )}
+                                    {asset.change}
                                 </div>
                             </div>
-                            <div className={`flex items-center gap-1 text-[10px] font-bold font-mono ${asset.isUp ? 'text-accent neon-glow-green' : 'text-destructive'}`}>
-                                {asset.isUp ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                                {asset.change}
-                            </div>
-                        </div>
-                    ))
-                )}
-            </div>
+                        );
+                    })}
+                </div>
+            )}
         </WidgetWrapper>
     );
 }

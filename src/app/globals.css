@@ -78,3 +78,41 @@
 @keyframes blink {
   50% { border-color: transparent }
 }
+
+@keyframes price-flash-up {
+  0% {
+    color: #ffffff;
+    text-shadow: none;
+  }
+  28% {
+    color: #7cf7c1;
+    text-shadow: 0 0 14px rgba(0, 255, 163, 0.45);
+  }
+  100% {
+    color: #ffffff;
+    text-shadow: none;
+  }
+}
+
+@keyframes price-flash-down {
+  0% {
+    color: #ffffff;
+    text-shadow: none;
+  }
+  28% {
+    color: #ff8f8f;
+    text-shadow: 0 0 14px rgba(255, 89, 89, 0.45);
+  }
+  100% {
+    color: #ffffff;
+    text-shadow: none;
+  }
+}
+
+.price-flash-up {
+  animation: price-flash-up 0.7s ease-out;
+}
+
+.price-flash-down {
+  animation: price-flash-down 0.7s ease-out;
+}

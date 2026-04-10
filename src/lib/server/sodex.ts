@@ -1,15 +1,18 @@
 import 'server-only';
 
 import { ethers } from 'ethers';
+import { signSodexRequest, toSodexPayload } from '@/lib/eip712-signer';
+import type {
+    MarketPulseItem,
+    PortfolioBalance,
+    PortfolioSnapshot,
+    SodexOrder,
+} from '@/types/sodex';
 import {
-    type MarketPulseItem,
-    type PortfolioBalance,
-    type PortfolioSnapshot,
-    type SodexOrder,
     formatSignedPercent,
     getErrorMessage,
     normalizeNumericString,
-} from '@/lib/crypto-dashboard';
+} from '@/lib/crypto/formatters';
 
 export const SODEX_SPOT_REST_BASE = 'https://mainnet-gw.sodex.dev/api/v1/spot';
 export const SODEX_PERPS_REST_BASE = 'https://mainnet-gw.sodex.dev/api/v1/perps';
@@ -103,13 +106,6 @@ type PlacePerpsOrderInput = {
     direction: 'LONG' | 'SHORT';
 };
 
-const EXCHANGE_ACTION_TYPES = {
-    ExchangeAction: [
-        { name: 'payloadHash', type: 'bytes32' },
-        { name: 'nonce', type: 'uint64' },
-    ],
-};
-
 const requiredEnv = (name: string) => {
     const value = process.env[name];
 
@@ -136,13 +132,6 @@ const getWallet = () => new ethers.Wallet(requiredEnv('SODEX_API_PRIVATE_KEY'));
 
 const getBaseUrl = (market: SodexMarket) =>
     market === 'spot' ? SODEX_SPOT_REST_BASE : SODEX_PERPS_REST_BASE;
-
-const getActionDomain = (market: SodexMarket) => ({
-    name: market === 'spot' ? 'spot' : 'futures',
-    version: '1',
-    chainId: 286623,
-    verifyingContract: '0x0000000000000000000000000000000000000000',
-});
 
 const prunePayload = (value: unknown): unknown => {
     if (Array.isArray(value)) {
@@ -212,20 +201,10 @@ const parseSodexEnvelope = <T>(json: RawSodexEnvelope<T> | T): T => {
 };
 
 const buildAuthenticatedHeaders = async (market: SodexMarket, params: Record<string, unknown>) => {
-    const wallet = getWallet();
-    const nonce = Date.now();
-    const payloadHash = ethers.keccak256(ethers.toUtf8Bytes(compactJson(params)));
-    const rawSignature = await wallet.signTypedData(getActionDomain(market), EXCHANGE_ACTION_TYPES, {
-        payloadHash,
-        nonce,
-    });
-
     return {
         Accept: 'application/json',
         'Content-Type': 'application/json',
-        'X-API-Key': wallet.address,
-        'X-API-Sign': `0x01${rawSignature.slice(2)}`,
-        'X-API-Nonce': String(nonce),
+        ...(await signSodexRequest(market, toSodexPayload(params))),
     };
 };
 

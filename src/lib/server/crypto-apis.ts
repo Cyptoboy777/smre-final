@@ -3,15 +3,14 @@ import 'server-only';
 import { createHash } from 'crypto';
 import { Groq } from 'groq-sdk';
 import { ethers } from 'ethers';
+import type { AnalysisSnapshot, SecuritySnapshot } from '@/types/groq';
+import type { NewsItem } from '@/types/market';
 import {
-    type AnalysisSnapshot,
-    type NewsItem,
-    type SecuritySnapshot,
     formatUSD,
     formatSignedPercent,
     getErrorMessage,
     isWalletAddress,
-} from '@/lib/crypto-dashboard';
+} from '@/lib/crypto/formatters';
 import { fetchSodexTickers } from '@/lib/server/sodex';
 
 type GoPlusAccessTokenResponse = {

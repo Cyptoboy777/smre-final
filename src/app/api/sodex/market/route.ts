@@ -1,17 +1,11 @@
-import { fetchSodexTickers } from '@/lib/server/sodex';
-import { handleRoute, jsonSuccess } from '@/lib/server/route-response';
+import { jsonNotImplemented } from "@/lib/server/route-response";
 
-export async function GET(request: Request) {
-    return handleRoute(async () => {
-        const { searchParams } = new URL(request.url);
-        const market = searchParams.get('market') === 'spot' ? 'spot' : 'perps';
-        const symbol = searchParams.get('symbol')?.trim() || undefined;
-        const items = await fetchSodexTickers(market, symbol);
+export const runtime = "nodejs";
 
-        return jsonSuccess({
-            market,
-            items,
-            source: 'sodex' as const,
-        });
-    });
+export async function GET() {
+  return jsonNotImplemented({
+    route: "/api/sodex/market",
+    provider: "sodex",
+    message: "Phase 1 scaffold complete. Sodex market REST wiring is deferred.",
+  });
 }
