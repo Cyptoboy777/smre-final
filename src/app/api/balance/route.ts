@@ -11,7 +11,13 @@ export async function GET(request: Request) {
             return jsonError('Invalid wallet address', 400);
         }
 
-        const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL);
+        const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL?.trim();
+
+        if (!rpcUrl) {
+            return jsonError('Key not configured', 500);
+        }
+
+        const provider = new ethers.JsonRpcProvider(rpcUrl);
         const balanceWei = await provider.getBalance(address);
         const ethBalance = ethers.formatEther(balanceWei);
 

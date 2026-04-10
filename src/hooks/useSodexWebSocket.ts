@@ -9,6 +9,7 @@ type UseSodexWebSocketOptions<TMessage> = {
     enabled?: boolean;
     subscribeMessages?: unknown[];
     heartbeatMs?: number;
+    pongTimeoutMs?: number;
     maxBufferedMessages?: number;
     onMessage?: (message: TMessage) => void;
 };
@@ -18,6 +19,7 @@ export function useSodexWebSocket<TMessage>({
     enabled = true,
     subscribeMessages = [],
     heartbeatMs = 50000,
+    pongTimeoutMs = 15000,
     maxBufferedMessages = 50,
     onMessage,
 }: UseSodexWebSocketOptions<TMessage>) {
@@ -29,6 +31,7 @@ export function useSodexWebSocket<TMessage>({
     const reconnectAttemptsRef = useRef(0);
     const messageQueueRef = useRef<TMessage[]>([]);
     const lastActivityRef = useRef<number>(Date.now());
+    const awaitingPongAtRef = useRef<number | null>(null);
     const intentionalCloseRef = useRef(false);
 
     const [status, setStatus] = useState<ConnectionStatus>('idle');
@@ -127,6 +130,7 @@ export function useSodexWebSocket<TMessage>({
         socket.onopen = () => {
             reconnectAttemptsRef.current = 0;
             lastActivityRef.current = Date.now();
+            awaitingPongAtRef.current = null;
             setStatus('open');
 
             for (const message of subscribeMessagesRef.current) {
@@ -138,15 +142,27 @@ export function useSodexWebSocket<TMessage>({
                     return;
                 }
 
-                if (Date.now() - lastActivityRef.current >= heartbeatMs) {
+                const now = Date.now();
+
+                if (
+                    awaitingPongAtRef.current !== null &&
+                    now - awaitingPongAtRef.current >= pongTimeoutMs &&
+                    now - lastActivityRef.current >= pongTimeoutMs
+                ) {
+                    socket.close();
+                    return;
+                }
+
+                if (awaitingPongAtRef.current === null && now - lastActivityRef.current >= heartbeatMs) {
                     socket.send(JSON.stringify({ op: 'ping' }));
-                    lastActivityRef.current = Date.now();
+                    awaitingPongAtRef.current = now;
                 }
             }, 5000);
         };
 
         socket.onmessage = (event) => {
             lastActivityRef.current = Date.now();
+            awaitingPongAtRef.current = null;
             setLastMessageAt(lastActivityRef.current);
 
             try {
@@ -175,6 +191,7 @@ export function useSodexWebSocket<TMessage>({
 
         socket.onclose = () => {
             clearTimers();
+            awaitingPongAtRef.current = null;
             setStatus('closed');
             if (intentionalCloseRef.current) {
                 return;
@@ -203,7 +220,7 @@ export function useSodexWebSocket<TMessage>({
             wsRef.current = null;
             setStatus('closed');
         };
-    }, [connect, clearTimers, enabled, url, heartbeatMs]);
+    }, [connect, clearTimers, enabled, url, heartbeatMs, pongTimeoutMs]);
 
     return {
         status,

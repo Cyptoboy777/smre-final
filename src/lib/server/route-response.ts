@@ -7,6 +7,12 @@ const DEFAULT_HEADERS = {
     'Cache-Control': 'no-store',
 };
 
+const isMissingKeyError = (message: string) => {
+    const normalized = message.toLowerCase();
+
+    return normalized.includes('not configured') || normalized.includes('_not_configured');
+};
+
 export const jsonSuccess = <T extends Record<string, unknown>>(body: T, init?: ResponseInit) =>
     NextResponse.json(
         {
@@ -26,7 +32,7 @@ export const jsonError = (error: unknown, status = 500, extras?: Record<string, 
     NextResponse.json(
         {
             success: false,
-            error: getErrorMessage(error),
+            error: isMissingKeyError(getErrorMessage(error)) ? 'Key not configured' : getErrorMessage(error),
             ...(extras || {}),
         },
         {

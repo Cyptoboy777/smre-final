@@ -6,6 +6,10 @@ export async function GET() {
         ensureServerConfiguration(hasSodexServerAuth(), getSodexServerAuthMessage() || 'SoDEX server auth is not configured');
         const portfolio = await fetchSodexPortfolio();
 
-        return jsonSuccess(portfolio);
+        return jsonSuccess(portfolio, {
+            headers: {
+                'Cache-Control': 'no-store',
+            },
+        });
     });
 }

@@ -61,10 +61,36 @@ type GoPlusAddressSecurityResponse = {
     result?: Record<string, any> | any;
 };
 
+type ServerFetchInit = RequestInit & {
+    next?: {
+        revalidate?: number;
+    };
+};
+
+class UpstreamApiError extends Error {
+    status: number;
+    provider: string;
+
+    constructor(message: string, options: { status: number; provider: string }) {
+        super(message);
+        this.name = 'UpstreamApiError';
+        this.status = options.status;
+        this.provider = options.provider;
+    }
+}
+
+type CachedNewsPayload = {
+    items: NewsItem[];
+    expiresAt: number;
+};
+
 let goplusTokenCache: {
     token: string;
     expiresAt: number;
 } | null = null;
+const CRYPTOPANIC_CACHE_TTL_MS = 60_000;
+const cryptopanicCache = new Map<string, CachedNewsPayload>();
+const cryptopanicInflight = new Map<string, Promise<NewsItem[]>>();
 
 const requiredEnv = (name: string) => {
     const value = process.env[name];
@@ -78,7 +104,7 @@ const requiredEnv = (name: string) => {
 
 const getResponseSnippet = (text: string) => text.replace(/\s+/g, ' ').trim().slice(0, 140);
 
-const safeJsonFetch = async <T>(url: string, init: RequestInit = {}, provider = 'Upstream API'): Promise<T> => {
+const safeJsonFetch = async <T>(url: string, init: ServerFetchInit = {}, provider = 'Upstream API'): Promise<T> => {
     const headers = new Headers(init.headers);
 
     if (!headers.has('Accept')) {
@@ -86,25 +112,35 @@ const safeJsonFetch = async <T>(url: string, init: RequestInit = {}, provider = 
     }
 
     const response = await fetch(url, {
-        cache: 'no-store',
         ...init,
         headers,
+        cache: init.cache ?? 'no-store',
     });
     const text = await response.text();
     const contentType = response.headers.get('content-type')?.toLowerCase() || '';
 
     if (!text) {
         if (!response.ok) {
-            throw new Error(`${provider} request failed (${response.status} ${response.statusText})`);
+            throw new UpstreamApiError(`${provider} request failed (${response.status} ${response.statusText})`, {
+                status: response.status,
+                provider,
+            });
         }
 
         return {} as T;
     }
 
     if (!contentType.includes('application/json')) {
-        throw new Error(
-            `${provider} returned non-JSON response (${response.status}). ${getResponseSnippet(text) || 'Empty response body'}`
-        );
+        const message = `${provider} returned non-JSON response (${response.status}). ${getResponseSnippet(text) || 'Empty response body'}`;
+
+        if (!response.ok) {
+            throw new UpstreamApiError(message, {
+                status: response.status,
+                provider,
+            });
+        }
+
+        throw new Error(message);
     }
 
     let json: T;
@@ -116,7 +152,10 @@ const safeJsonFetch = async <T>(url: string, init: RequestInit = {}, provider = 
     }
 
     if (!response.ok) {
-        throw new Error(`${provider} request failed (${response.status} ${response.statusText})`);
+        throw new UpstreamApiError(`${provider} request failed (${response.status} ${response.statusText})`, {
+            status: response.status,
+            provider,
+        });
     }
 
     return json;
@@ -208,29 +247,10 @@ const pickBestPair = (pairs: DexPair[] | undefined) => {
     })[0] ?? null;
 };
 
-export const fetchCryptoPanicNews = async (query?: string): Promise<NewsItem[]> => {
-    const apiKey = requiredEnv('CRYPTOPANIC_API_KEY');
+const getCryptoPanicCacheKey = (query?: string) =>
+    query && !isWalletAddress(query) ? query.trim().toUpperCase() : '__GLOBAL__';
 
-    const params = new URLSearchParams({
-        auth_token: apiKey,
-        kind: 'news',
-        public: 'true',
-    });
-
-    if (query && !isWalletAddress(query)) {
-        params.set('currencies', query.toUpperCase());
-    }
-
-    const data = await safeJsonFetch<CryptoPanicResponse>(
-        `https://cryptopanic.com/api/v1/posts/?${params.toString()}`,
-        {
-            headers: {
-                'User-Agent': 'SoSo-SMRE/1.0',
-            },
-        },
-        'CryptoPanic'
-    );
-
+const normalizeCryptoPanicItems = (data: CryptoPanicResponse | null | undefined) => {
     const items = data?.results?.slice(0, 8).map((item) => ({
         title: item.title || 'Market update unavailable',
         source: { title: item.source?.title || 'CryptoPanic' },
@@ -242,6 +262,71 @@ export const fetchCryptoPanicNews = async (query?: string): Promise<NewsItem[]> 
     }));
 
     return items?.length ? items : [];
+};
+
+export const fetchCryptoPanicNews = async (query?: string): Promise<NewsItem[]> => {
+    const cacheKey = getCryptoPanicCacheKey(query);
+    const cached = cryptopanicCache.get(cacheKey);
+
+    if (cached && cached.expiresAt > Date.now()) {
+        return cached.items;
+    }
+
+    const inflight = cryptopanicInflight.get(cacheKey);
+
+    if (inflight) {
+        return inflight;
+    }
+
+    const requestPromise = (async () => {
+        try {
+            const apiKey = requiredEnv('CRYPTOPANIC_API_KEY');
+            const params = new URLSearchParams({
+                auth_token: apiKey,
+                kind: 'news',
+                public: 'true',
+            });
+
+            if (query && !isWalletAddress(query)) {
+                params.set('currencies', query.toUpperCase());
+            }
+
+            const data = await safeJsonFetch<CryptoPanicResponse>(
+                `https://cryptopanic.com/api/v1/posts/?${params.toString()}`,
+                {
+                    cache: 'force-cache',
+                    next: {
+                        revalidate: 60,
+                    },
+                    headers: {
+                        'User-Agent': 'SoSo-SMRE/1.0',
+                    },
+                },
+                'CryptoPanic'
+            );
+
+            const items = normalizeCryptoPanicItems(data);
+
+            cryptopanicCache.set(cacheKey, {
+                items,
+                expiresAt: Date.now() + CRYPTOPANIC_CACHE_TTL_MS,
+            });
+
+            return items;
+        } catch (error) {
+            if (error instanceof UpstreamApiError && error.status === 429 && cached) {
+                return cached.items;
+            }
+
+            throw error;
+        } finally {
+            cryptopanicInflight.delete(cacheKey);
+        }
+    })();
+
+    cryptopanicInflight.set(cacheKey, requestPromise);
+
+    return requestPromise;
 };
 
 export const fetchTokenSecurity = async (contractAddress: string, chainId: string): Promise<SecuritySnapshot> => {

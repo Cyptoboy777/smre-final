@@ -86,19 +86,21 @@ const mergeRealtimeState = (
 ): PortfolioSnapshot => {
     const nextBalances = (message?.B || []).map((item) => normalizeBalance(market, item));
     const nextOrders = (message?.O || []).map((item) => normalizeOrder(market, item));
+    const hasBalances = Array.isArray(message?.B);
+    const hasOrders = Array.isArray(message?.O);
 
     return {
         ...current,
-        balances: [
-            ...current.balances.filter((entry) => entry.market !== market),
-            ...nextBalances,
-        ],
-        recentOrders: [
-            ...nextOrders,
-            ...current.recentOrders.filter((entry) => entry.market !== market),
-        ]
-            .sort((left, right) => (right.updatedAt ?? right.createdAt ?? 0) - (left.updatedAt ?? left.createdAt ?? 0))
-            .slice(0, 12),
+        balances: hasBalances
+            ? [...current.balances.filter((entry) => entry.market !== market), ...nextBalances]
+            : current.balances,
+        recentOrders: hasOrders
+            ? [...nextOrders, ...current.recentOrders.filter((entry) => entry.market !== market)]
+                  .sort(
+                      (left, right) => (right.updatedAt ?? right.createdAt ?? 0) - (left.updatedAt ?? left.createdAt ?? 0)
+                  )
+                  .slice(0, 12)
+            : current.recentOrders,
         fetchedAt: new Date().toISOString(),
     };
 };
@@ -112,8 +114,6 @@ export default function PortfolioVault() {
 
             return {
                 address: response.address,
-                spotAccountID: response.spotAccountID,
-                perpsAccountID: response.perpsAccountID,
                 balances: response.balances,
                 recentOrders: response.recentOrders,
                 fetchedAt: response.fetchedAt,
@@ -121,7 +121,7 @@ export default function PortfolioVault() {
         },
     });
 
-    useSodexWebSocket<AccountStateMessage>({
+    const spotStream = useSodexWebSocket<AccountStateMessage>({
         url: 'wss://mainnet-gw.sodex.dev/ws/spot',
         enabled: Boolean(portfolio?.address),
         subscribeMessages: portfolio?.address
@@ -144,7 +144,7 @@ export default function PortfolioVault() {
         },
     });
 
-    useSodexWebSocket<AccountStateMessage>({
+    const perpsStream = useSodexWebSocket<AccountStateMessage>({
         url: 'wss://mainnet-gw.sodex.dev/ws/perps',
         enabled: Boolean(portfolio?.address),
         subscribeMessages: portfolio?.address
@@ -167,6 +167,15 @@ export default function PortfolioVault() {
         },
     });
 
+    const streamStatusLabel =
+        spotStream.status === 'open' && perpsStream.status === 'open'
+            ? 'STREAM_SYNCED'
+            : spotStream.status === 'reconnecting' || perpsStream.status === 'reconnecting'
+              ? 'RECONNECTING'
+              : spotStream.status === 'error' || perpsStream.status === 'error'
+                ? 'STREAM_DEGRADED'
+                : 'CONNECTING';
+
     return (
         <WidgetWrapper title="PORTFOLIO VAULT" icon={<Wallet className="w-3 h-3" />} loading={loading} error={error}>
             <div className="flex flex-col gap-4 h-full">
@@ -185,10 +194,10 @@ export default function PortfolioVault() {
                             </div>
                             <div className="text-right">
                                 <span className="text-[8px] font-mono text-white/30 uppercase tracking-widest leading-none mb-1">
-                                    ACCOUNTS
+                                    NETWORK
                                 </span>
                                 <div className="text-[10px] font-mono text-white/70">
-                                    S:{portfolio.spotAccountID} / P:{portfolio.perpsAccountID}
+                                    SPOT + PERPS
                                 </div>
                             </div>
                         </div>
@@ -198,7 +207,17 @@ export default function PortfolioVault() {
                                 <Activity className="w-3 h-3 text-primary" />
                                 LIVE_ACCOUNT_STATE
                             </span>
-                            <span className="text-[8px] font-mono text-accent uppercase tracking-widest">STREAM_SYNCED</span>
+                            <span
+                                className={`text-[8px] font-mono uppercase tracking-widest ${
+                                    streamStatusLabel === 'STREAM_SYNCED'
+                                        ? 'text-accent'
+                                        : streamStatusLabel === 'STREAM_DEGRADED'
+                                          ? 'text-destructive'
+                                          : 'text-white/60'
+                                }`}
+                            >
+                                {streamStatusLabel}
+                            </span>
                         </div>
 
                         <div className="flex-1 grid grid-cols-[1.3fr,0.9fr] gap-3 min-h-0">

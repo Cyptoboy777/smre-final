@@ -8,10 +8,7 @@ export async function GET() {
 
         return jsonSuccess({
             address: portfolio.address,
-            spotAccountID: portfolio.spotAccountID,
-            perpsAccountID: portfolio.perpsAccountID,
             balances: portfolio.balances,
-            recentOrders: portfolio.recentOrders,
         });
     });
 }

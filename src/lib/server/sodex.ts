@@ -122,37 +122,14 @@ const requiredEnv = (name: string) => {
 
 const hasEnv = (name: string) => Boolean(process.env[name]?.trim());
 
-export const hasSodexServerAuth = () =>
-    hasEnv('SODEX_API_PRIVATE_KEY') &&
-    (hasEnv('SODEX_ACCOUNT_ID') || (hasEnv('SODEX_SPOT_ACCOUNT_ID') && hasEnv('SODEX_PERPS_ACCOUNT_ID')));
+export const hasSodexServerAuth = () => hasEnv('SODEX_API_PRIVATE_KEY');
 
 export const getSodexServerAuthMessage = () => {
     if (!hasEnv('SODEX_API_PRIVATE_KEY')) {
         return 'SERVER_SIDE_SODEX_PRIVATE_KEY_NOT_CONFIGURED';
     }
 
-    if (!hasEnv('SODEX_ACCOUNT_ID') && !(hasEnv('SODEX_SPOT_ACCOUNT_ID') && hasEnv('SODEX_PERPS_ACCOUNT_ID'))) {
-        return 'SERVER_SIDE_SODEX_ACCOUNT_ID_NOT_CONFIGURED';
-    }
-
     return null;
-};
-
-const getAccountID = (market: SodexMarket) => {
-    const directKey = market === 'spot' ? 'SODEX_SPOT_ACCOUNT_ID' : 'SODEX_PERPS_ACCOUNT_ID';
-    const fallbackKey = 'SODEX_ACCOUNT_ID';
-    const raw = process.env[directKey] || process.env[fallbackKey];
-
-    if (!raw) {
-        throw new Error(`${directKey} or ${fallbackKey} is not configured`);
-    }
-
-    const parsed = Number(raw);
-    if (!Number.isInteger(parsed) || parsed < 0) {
-        throw new Error(`Invalid account ID in ${directKey} or ${fallbackKey}`);
-    }
-
-    return parsed;
 };
 
 const getWallet = () => new ethers.Wallet(requiredEnv('SODEX_API_PRIVATE_KEY'));
@@ -418,8 +395,6 @@ export const getSodexAccountContext = () => {
 
     return {
         address: wallet.address,
-        spotAccountID: getAccountID('spot'),
-        perpsAccountID: getAccountID('perps'),
     };
 };
 
@@ -436,33 +411,27 @@ export const fetchSodexTickers = async (market: SodexMarket, symbol?: string) =>
 };
 
 export const fetchSodexAccountBalances = async (market: SodexMarket) => {
-    const { address, spotAccountID, perpsAccountID } = getSodexAccountContext();
-    const accountID = market === 'spot' ? spotAccountID : perpsAccountID;
+    const { address } = getSodexAccountContext();
     const payload = await sodexRequest<unknown>({
         market,
         path: `/accounts/${address}/balances`,
-        query: {
-            accountID,
-        },
         authenticated: true,
     });
 
     return {
         address,
-        accountID,
         balances: extractBalanceRows(payload).map((balance) => normalizeBalance(market, balance)),
     };
 };
 
 export const fetchSodexAccountState = async (market: SodexMarket) => {
-    const [{ address, accountID, balances }, openOrders] = await Promise.all([
+    const [{ address, balances }, openOrders] = await Promise.all([
         fetchSodexAccountBalances(market),
         fetchSodexOrderHistory(market, { limit: 10 }),
     ]);
 
     return {
         address,
-        accountID,
         balances,
         openOrders,
     };
@@ -477,13 +446,11 @@ export const fetchSodexOrderHistory = async (
         endTime?: number;
     } = {}
 ) => {
-    const { address, spotAccountID, perpsAccountID } = getSodexAccountContext();
-    const accountID = market === 'spot' ? spotAccountID : perpsAccountID;
+    const { address } = getSodexAccountContext();
     const payload = await sodexRequest<unknown>({
         market,
         path: `/accounts/${address}/orders/history`,
         query: {
-            accountID,
             symbol: options.symbol,
             limit: options.limit ?? 25,
             startTime: options.startTime,
@@ -496,7 +463,7 @@ export const fetchSodexOrderHistory = async (
 };
 
 export const fetchSodexPortfolio = async (): Promise<PortfolioSnapshot> => {
-    const { address, spotAccountID, perpsAccountID } = getSodexAccountContext();
+    const { address } = getSodexAccountContext();
     const [spotBalances, perpsBalances, spotHistory, perpsHistory] = await Promise.all([
         fetchSodexAccountBalances('spot'),
         fetchSodexAccountBalances('perps'),
@@ -510,8 +477,6 @@ export const fetchSodexPortfolio = async (): Promise<PortfolioSnapshot> => {
 
     return {
         address,
-        spotAccountID,
-        perpsAccountID,
         balances: [...spotBalances.balances, ...perpsBalances.balances],
         recentOrders,
         fetchedAt: new Date().toISOString(),
@@ -519,9 +484,7 @@ export const fetchSodexPortfolio = async (): Promise<PortfolioSnapshot> => {
 };
 
 export const placeSodexPerpsOrder = async ({ symbol, quantity, direction }: PlacePerpsOrderInput) => {
-    const { perpsAccountID } = getSodexAccountContext();
     const params = {
-        accountID: perpsAccountID,
         orders: [
             {
                 clOrdID: `soso-${Date.now()}`,
@@ -558,13 +521,19 @@ export const mergeAccountStateSnapshot = (
 ): PortfolioSnapshot => {
     const nextBalances = (incoming.B || []).map((balance) => normalizeBalance(market, balance));
     const nextOrders = (incoming.O || []).map((order) => normalizeOrder(market, order));
+    const hasBalances = Array.isArray(incoming.B);
+    const hasOrders = Array.isArray(incoming.O);
 
     return {
         ...current,
-        balances: [...current.balances.filter((balance) => balance.market !== market), ...nextBalances],
-        recentOrders: [...nextOrders, ...current.recentOrders.filter((order) => order.market !== market)]
+        balances: hasBalances
+            ? [...current.balances.filter((balance) => balance.market !== market), ...nextBalances]
+            : current.balances,
+        recentOrders: hasOrders
+            ? [...nextOrders, ...current.recentOrders.filter((order) => order.market !== market)]
             .sort((left, right) => (right.updatedAt ?? right.createdAt ?? 0) - (left.updatedAt ?? left.createdAt ?? 0))
-            .slice(0, 12),
+            .slice(0, 12)
+            : current.recentOrders,
         fetchedAt: new Date().toISOString(),
     };
 };

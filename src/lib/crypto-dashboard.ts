@@ -42,8 +42,6 @@ export type SodexOrder = {
 
 export type PortfolioSnapshot = {
     address: string;
-    spotAccountID: number;
-    perpsAccountID: number;
     balances: PortfolioBalance[];
     recentOrders: SodexOrder[];
     fetchedAt: string;

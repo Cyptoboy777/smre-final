@@ -20,9 +20,38 @@ type AllBookTickerMessage = {
     }>;
 };
 
+const getDisplayPrice = (askPrice?: string, bidPrice?: string) => {
+    const ask = Number(askPrice);
+    const bid = Number(bidPrice);
+    const validAsk = Number.isFinite(ask) && ask > 0 ? ask : null;
+    const validBid = Number.isFinite(bid) && bid > 0 ? bid : null;
+
+    if (validAsk !== null && validBid !== null) {
+        return ((validAsk + validBid) / 2).toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        });
+    }
+
+    if (validAsk !== null) {
+        return validAsk.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        });
+    }
+
+    if (validBid !== null) {
+        return validBid.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        });
+    }
+
+    return null;
+};
+
 export default function MarketPulse() {
     const { data, loading, error, setData } = useApiQuery<MarketPulseItem[]>({
-        refreshIntervalMs: 20000,
         request: async (signal) => {
             const response = await fetchApi<ApiSuccessPayload<MarketRouteResponse>>('/api/sodex/market?market=perps', {
                 signal,
@@ -36,7 +65,7 @@ export default function MarketPulse() {
 
     const prices = data || [];
 
-    useSodexWebSocket<AllBookTickerMessage>({
+    const stream = useSodexWebSocket<AllBookTickerMessage>({
         url: 'wss://mainnet-gw.sodex.dev/ws/perps',
         subscribeMessages: [
             {
@@ -57,26 +86,31 @@ export default function MarketPulse() {
                 const nextCurrent = current || [];
 
                 if (nextCurrent.length === 0) {
-                    return updates
-                        .filter((entry) => TRACKED_SYMBOLS.includes(entry.s))
-                        .slice(0, 3)
-                        .map((entry) => {
-                            const ask = Number(entry.a);
-                            const bid = Number(entry.b);
+                    const seededItems: MarketPulseItem[] = [];
 
-                            return {
+                    for (const entry of updates) {
+                        if (!TRACKED_SYMBOLS.includes(entry.s) || seededItems.length >= 3) {
+                            continue;
+                        }
+
+                            const price = getDisplayPrice(entry.a, entry.b);
+
+                            if (!price) {
+                                continue;
+                            }
+
+                            seededItems.push({
                                 symbol: entry.s,
-                                price: ((ask + bid) / 2).toLocaleString(undefined, {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2,
-                                }),
+                                price,
                                 change: '+0.00%',
                                 isUp: true,
                                 market: 'perps' as const,
                                 bidPrice: entry.b,
                                 askPrice: entry.a,
-                            };
-                        });
+                            });
+                    }
+
+                    return seededItems;
                 }
 
                 return nextCurrent.map((item) => {
@@ -86,12 +120,11 @@ export default function MarketPulse() {
                         return item;
                     }
 
-                    const ask = Number(update.a);
-                    const bid = Number(update.b);
-                    const price = ((ask + bid) / 2).toLocaleString(undefined, {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                    });
+                    const price = getDisplayPrice(update.a, update.b);
+
+                    if (!price) {
+                        return item;
+                    }
 
                     return {
                         ...item,
@@ -104,16 +137,28 @@ export default function MarketPulse() {
         },
     });
 
+    const streamLabel =
+        stream.status === 'open'
+            ? 'LIVE'
+            : stream.status === 'reconnecting'
+              ? 'RECONNECTING'
+              : stream.status === 'error'
+                ? 'DEGRADED'
+                : 'BOOTING';
+
     return (
         <WidgetWrapper title="MARKET PULSE" icon={<Activity className="w-3 h-3" />} loading={loading} error={error}>
             <div className="grid grid-cols-1 gap-2 h-full">
+                <div className="flex items-center justify-end text-[8px] font-mono uppercase tracking-widest text-white/40">
+                    {streamLabel}
+                </div>
                 {prices.length === 0 ? (
                     <div className="flex-1 flex items-center justify-center rounded-xl border border-white/5 bg-white/[0.02] text-[9px] font-mono text-white/30 uppercase tracking-widest text-center px-4">
                         Awaiting live SoDEX market data
                     </div>
                 ) : (
-                    prices.map((asset, i) => (
-                        <div key={i} className="flex items-center justify-between p-2 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/5 transition-all">
+                    prices.map((asset) => (
+                        <div key={asset.symbol} className="flex items-center justify-between p-2 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/5 transition-all">
                             <div className="flex items-center gap-3">
                                 <div className={`w-1 h-8 rounded-full ${asset.isUp ? 'bg-accent' : 'bg-destructive'}`} />
                                 <div>

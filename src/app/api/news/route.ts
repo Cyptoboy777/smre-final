@@ -10,6 +10,10 @@ export async function GET(request: Request) {
         return jsonSuccess({
             items,
             source: 'cryptopanic',
+        }, {
+            headers: {
+                'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+            },
         });
     });
 }
