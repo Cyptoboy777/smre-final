@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Space_Grotesk } from "next/font/google";
+import { Inter, Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { APP_DESCRIPTION, APP_NAME, APP_TITLE } from "@/config/app";
 import { SWRProvider } from "@/lib/providers/SWRProvider";
@@ -12,6 +12,11 @@ const inter = Inter({
 const fontSans = Space_Grotesk({
   subsets: ["latin"],
   variable: "--font-heading",
+});
+
+const fontMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
 });
 
 export const metadata: Metadata = {
@@ -27,12 +32,18 @@ type RootLayoutProps = Readonly<{
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="en" className="dark scroll-smooth">
+      <head>
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        />
+      </head>
       <body
         className={[
           inter.variable,
           fontSans.variable,
-          "min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.16),_transparent_35%),radial-gradient(circle_at_bottom_right,_rgba(251,191,36,0.14),_transparent_30%),#04070d]",
-          "font-sans text-white selection:bg-cyan-500/30 selection:text-white",
+          fontMono.variable,
+          "min-h-screen bg-[#0b0e11] font-sans text-white selection:bg-[#ccff00]/30 selection:text-white antialiased",
         ].join(" ")}
       >
         <SWRProvider>{children}</SWRProvider>
@@ -40,3 +51,4 @@ export default function RootLayout({ children }: RootLayoutProps) {
     </html>
   );
 }
+

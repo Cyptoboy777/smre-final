@@ -19,24 +19,35 @@ export default function DashboardPage() {
 
   return (
     <AppShell>
-      <DashboardGrid
-        left={
-          <>
-            <MarketPulse />
-            <NewsStream onTickerClick={handleTickerClick} />
-          </>
-        }
-        center={
-          <>
-            <QuantIntelligence />
-            <div className="grid gap-4 xl:grid-cols-2">
-              <SecurityRadar data={null} loading={false} />
-              <PortfolioVault />
+      <div className="p-4 md:p-8">
+        <DashboardGrid
+          left={
+            <>
+              <MarketPulse />
+              <div className="flex-1 min-h-[400px]">
+                <NewsStream onTickerClick={handleTickerClick} />
+              </div>
+            </>
+          }
+          center={
+            <>
+              <div className="flex-1 min-h-[500px]">
+                <QuantIntelligence />
+              </div>
+              <div className="grid gap-6 xl:grid-cols-2 shrink-0">
+                <SecurityRadar data={null} loading={false} />
+                <PortfolioVault />
+              </div>
+            </>
+          }
+          right={
+            <div className="h-full flex flex-col">
+              <SodexTerminal target={selectedTicker ? { symbol: selectedTicker } : null} />
             </div>
-          </>
-        }
-        right={<SodexTerminal target={selectedTicker ? { symbol: selectedTicker } : null} />}
-      />
+          }
+        />
+      </div>
     </AppShell>
   );
 }
+

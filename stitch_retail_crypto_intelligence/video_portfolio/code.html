@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Manrope:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+                  "on-error-container": "#ffd2c8",
+                  "inverse-primary": "#516700",
+                  "surface-bright": "#2c2c2c",
+                  "on-primary-fixed-variant": "#526900",
+                  "tertiary-dim": "#ebebeb",
+                  "on-secondary-fixed-variant": "#5c5b5b",
+                  "primary-fixed": "#cafd00",
+                  "secondary-fixed": "#e5e2e1",
+                  "on-primary": "#516700",
+                  "surface-container-lowest": "#000000",
+                  "outline-variant": "#494847",
+                  "surface-tint": "#f3ffca",
+                  "tertiary-fixed": "#ffffff",
+                  "error-container": "#b92902",
+                  "inverse-on-surface": "#565554",
+                  "on-secondary": "#525151",
+                  "error-dim": "#d53d18",
+                  "on-tertiary-container": "#555757",
+                  "background": "#0e0e0e",
+                  "on-surface-variant": "#adaaaa",
+                  "tertiary-fixed-dim": "#f0f1f1",
+                  "secondary-fixed-dim": "#d6d4d3",
+                  "on-error": "#450900",
+                  "outline": "#777575",
+                  "surface-container": "#1a1919",
+                  "tertiary-container": "#ebebeb",
+                  "surface-container-high": "#201f1f",
+                  "on-secondary-fixed": "#403f3f",
+                  "secondary": "#e5e2e1",
+                  "secondary-container": "#474746",
+                  "primary-fixed-dim": "#beee00",
+                  "tertiary": "#f9f9f9",
+                  "on-surface": "#ffffff",
+                  "on-tertiary": "#5e5f60",
+                  "on-primary-fixed": "#3a4a00",
+                  "surface-container-low": "#131313",
+                  "primary": "#f3ffca",
+                  "on-tertiary-fixed-variant": "#6c6d6e",
+                  "on-secondary-container": "#d2d0cf",
+                  "inverse-surface": "#fcf8f8",
+                  "error": "#ff7351",
+                  "primary-dim": "#beee00",
+                  "secondary-dim": "#d6d4d3",
+                  "surface": "#0e0e0e",
+                  "on-background": "#ffffff",
+                  "on-tertiary-fixed": "#4f5051",
+                  "primary-container": "#cafd00",
+                  "on-primary-container": "#4a5e00",
+                  "surface-variant": "#262626",
+                  "surface-container-highest": "#262626",
+                  "surface-dim": "#0e0e0e"
+          },
+          "borderRadius": {
+                  "DEFAULT": "0.125rem",
+                  "lg": "0.25rem",
+                  "xl": "0.5rem",
+                  "full": "0.75rem"
+          },
+          "fontFamily": {
+                  "headline": ["Space Grotesk"],
+                  "body": ["Manrope"],
+                  "label": ["Space Grotesk"]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    .glass-panel {
+      backdrop-filter: blur(24px);
+      background: rgba(14, 14, 14, 0.6);
+    }
+    .neon-glow {
+      text-shadow: 0 0 10px rgba(204, 255, 0, 0.6);
+    }
+    .obsidian-gradient {
+      background: linear-gradient(180deg, rgba(204, 255, 0, 0.05) 0%, rgba(0, 0, 0, 0) 100%);
+    }
+    body {
+      background-color: #0e0e0e;
+      color: #ffffff;
+      font-family: 'Manrope', sans-serif;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="antialiased selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopAppBar Execution -->
+<nav class="fixed top-0 w-full z-50 bg-[#0e0e0e]/60 backdrop-blur-xl flex justify-between items-center px-8 h-20 w-full">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-[#CCFF00] text-3xl" data-icon="terminal">terminal</span>
+<span class="text-2xl font-bold tracking-widest text-[#CCFF00] drop-shadow-[0_0_8px_rgba(204,255,0,0.4)] font-['Space_Grotesk'] tracking-tighter uppercase">NEON_TERMINAL</span>
+</div>
+<div class="hidden md:flex items-center gap-8">
+<a class="text-[#CCFF00] border-b-2 border-[#CCFF00] font-['Space_Grotesk'] tracking-tighter uppercase px-2 py-1" href="#">Dashboard</a>
+<a class="text-gray-500 hover:text-[#CCFF00] hover:backdrop-blur-2xl transition-all duration-500 font-['Space_Grotesk'] tracking-tighter uppercase px-2 py-1" href="#">Insights</a>
+<a class="text-gray-500 hover:text-[#CCFF00] hover:backdrop-blur-2xl transition-all duration-500 font-['Space_Grotesk'] tracking-tighter uppercase px-2 py-1" href="#">Exchange</a>
+</div>
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full border border-[#CCFF00]/30 overflow-hidden">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="abstract portrait of a person with cybernetic obsidian finish and glowing neon accents against a dark background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCkIvhRtTsMkZkSlEKyzXxJPBnhejIQOlLajz5X3ynjz3ns1w8Dr6Efi0bQRBmpZNxxEvgQPYIhR2G-1Tix6cGuOQmkXbTWcjF6VeY2zNYimgcM3FD2YPSK1L7V9q5xrRcJtDysGHxmWKsM5rpuRdu96fEAVosYuRtf9fkOiuuvlKHsLfNCYqn2U_QpFujYrogvciG4gHd9u75aNdhecjjVFCuAVkZY_VKC9TYntGltT85yB-ZLUvMdxt1mDZXKFKOMcTRJoAIDu1XX"/>
+</div>
+</div>
+<div class="bg-gradient-to-b from-[#CCFF00]/5 to-transparent h-[1px] w-full absolute bottom-0"></div>
+</nav>
+<main class="pt-24 pb-32 px-6 max-w-7xl mx-auto space-y-12">
+<!-- Hero PnL Section: Dynamic Video Display -->
+<section class="relative w-full aspect-video md:aspect-[21/9] rounded-lg overflow-hidden border border-white/5 bg-surface-container-lowest shadow-[0_20px_50px_rgba(0,0,0,0.8)]">
+<div class="absolute inset-0 z-0">
+<img class="w-full h-full object-cover opacity-40 mix-blend-screen" data-alt="cinematic visualization of flowing digital data streams with neon green light pulses on deep black background representing high-frequency trading" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBZcLJTho0GucfVLZkNowCdcGHQQCPTOfU7kAglDP1F69FDqUatHFe52ZiklS4TmpdoyCUqBXSxMzSQfjk3DwR5cYOlOsyaTvmIYwSonxH1l5ac9DRn-38w6c6GMPbMOYiaiq_oa154ccWYONzW-00xXIzQ_KD-87Yo2kVwFrpVz8-FLN5c0lRKs-dg6aIPcPhKW2-plp6JETXDMwlyBXYuuNARbm9VLskfADXxE67ghtpxVLnW7tKkajCSr8I99dD-iimO_g8LkDQO"/>
+</div>
+<!-- Overlay UI -->
+<div class="absolute inset-0 flex flex-col justify-end p-8 md:p-12 bg-gradient-to-t from-black via-black/20 to-transparent">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
+<div class="space-y-2">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-[#CCFF00] animate-pulse"></span>
+<span class="font-headline text-xs tracking-widest text-[#CCFF00] uppercase">Live Portfolio Performance</span>
+</div>
+<h1 class="font-headline text-6xl md:text-8xl font-bold tracking-tighter text-white">
+              +$42,891.<span class="text-[#CCFF00] opacity-80">92</span>
+</h1>
+<p class="font-body text-surface-variant text-lg max-w-md">
+              Real-time volatility tracking across top-tier liquidity pools. SOSO-SMRE engine engaged.
+            </p>
+</div>
+<div class="flex gap-4">
+<div class="px-6 py-4 glass-panel border border-white/10 rounded-lg flex flex-col items-center justify-center min-w-[120px]">
+<span class="text-xs text-gray-500 uppercase font-headline">Alpha</span>
+<span class="text-xl font-bold text-[#CCFF00]">+12.4%</span>
+</div>
+<div class="px-6 py-4 glass-panel border border-white/10 rounded-lg flex flex-col items-center justify-center min-w-[120px]">
+<span class="text-xs text-gray-500 uppercase font-headline">Risk</span>
+<span class="text-xl font-bold text-white">LOW</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Animated Fragment Decorative Elements -->
+<div class="absolute top-8 right-8 flex flex-col gap-1 items-end opacity-60">
+<div class="h-px w-24 bg-[#CCFF00]"></div>
+<div class="h-px w-16 bg-[#CCFF00]"></div>
+<div class="h-px w-32 bg-[#CCFF00]"></div>
+</div>
+</section>
+<!-- Cinematic Alerts Feed -->
+<section class="space-y-8">
+<div class="flex items-center justify-between border-b border-white/5 pb-4">
+<h2 class="font-headline text-3xl font-bold tracking-tight">CINEMATIC_ALERTS</h2>
+<div class="flex items-center gap-4 text-xs font-headline text-gray-500 tracking-widest uppercase">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]" data-icon="filter_list">filter_list</span> Filter</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]" data-icon="sort">sort</span> Newest</span>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+<!-- Alert Card 1 -->
+<div class="group relative surface-container-low p-1 transition-all duration-500 hover:scale-[1.02]">
+<div class="absolute inset-0 bg-gradient-to-br from-[#CCFF00]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<div class="relative bg-surface-container-high p-6 space-y-4">
+<div class="flex items-center gap-4">
+<div class="relative">
+<img class="w-12 h-12 rounded-lg object-cover grayscale group-hover:grayscale-0 transition-all" data-alt="futuristic technology icon showing a stylized whale and neon waves" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC9aQzx90MA3VGAZo9mfYfPCaqUU42g6--g3cHTSmCOyPemBqjkiAWASqUCsazOD5AXkjkoekyPV2eVlCNMdWO60x2Ey4pelzcg4zhAx5ZKtGX9dZAC4QRpSArPSABHZTC13BV59mUGBa3CHXakMbEdnoHFIh4vUN4NEmBCz2K7p_51PA1DeMOsIrxgcarX0ssqxELZvEbY7y2MaXx8YMaXMVfCAvL2IsKQDkwcnMMLboYgPPSAcNGoBex9nU2vOguK9kCjNYDumsS8"/>
+<div class="absolute -bottom-1 -right-1 w-4 h-4 bg-[#CCFF00] rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-[10px] text-black" data-icon="bolt" data-weight="fill">bolt</span>
+</div>
+</div>
+<div>
+<h3 class="font-headline font-bold text-white tracking-tight">Whale Movement Detected</h3>
+<p class="text-xs text-gray-500 uppercase font-headline">5 Minutes Ago</p>
+</div>
+</div>
+<p class="text-sm text-on-surface-variant leading-relaxed">
+              Large scale liquidity injection into <span class="text-white font-bold">ETH/USDC</span> pool. Volume spike exceeding 400% of 24h baseline.
+            </p>
+<div class="pt-4 flex items-center justify-between">
+<span class="text-[#CCFF00] font-headline text-sm font-bold">$12,400,000.00</span>
+<button class="text-xs font-headline uppercase tracking-widest text-gray-400 hover:text-white transition-colors">Details →</button>
+</div>
+</div>
+</div>
+<!-- Alert Card 2 -->
+<div class="group relative surface-container-low p-1 transition-all duration-500 hover:scale-[1.02]">
+<div class="relative bg-surface-container-high p-6 space-y-4">
+<div class="flex items-center gap-4">
+<div class="relative">
+<img class="w-12 h-12 rounded-lg object-cover grayscale" data-alt="dark tech background with glowing matrix code elements" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDxEg3eMrCyv47JgpQY7CIzhDaPTTujmjEgqBd855bT4VF2_8noO8j2bBn4mWW71Sw2k0Z132ahSB5NovVhV64V2_KgPgwPq8XXwZAuhEAYOWPV3_yrz6eXc8Oj96fGWitL1dckWrYkWynZNsPrgnfMv8Vmx5K1NNxTtLqaj7IyoaJHF09rZHf2UP3-haPpJsqqk_qUQHhvUH5HaZyrGg3ZvkpDXQNtO2ubCmSGv1fFzYi1gpeclKY65flki8dvKQ3OOyqM_HbqBUCy"/>
+<div class="absolute -bottom-1 -right-1 w-4 h-4 bg-error rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-[10px] text-black" data-icon="warning" data-weight="fill">warning</span>
+</div>
+</div>
+<div>
+<h3 class="font-headline font-bold text-white tracking-tight">Volatility Alert</h3>
+<p class="text-xs text-gray-500 uppercase font-headline">12 Minutes Ago</p>
+</div>
+</div>
+<p class="text-sm text-on-surface-variant leading-relaxed">
+              Price divergence detected in <span class="text-white font-bold">SOL/BTC</span> pairs. Smart money outflow increasing.
+            </p>
+<div class="pt-4 flex items-center justify-between">
+<span class="text-error font-headline text-sm font-bold">-4.82% SWING</span>
+<button class="text-xs font-headline uppercase tracking-widest text-gray-400 hover:text-white transition-colors">Analyze →</button>
+</div>
+</div>
+</div>
+<!-- Alert Card 3 -->
+<div class="group relative surface-container-low p-1 transition-all duration-500 hover:scale-[1.02]">
+<div class="relative bg-surface-container-high p-6 space-y-4">
+<div class="flex items-center gap-4">
+<div class="relative">
+<img class="w-12 h-12 rounded-lg object-cover grayscale" data-alt="satellite view of earth at night with glowing connection networks" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAp-4Tb2c4LFuHdHXM1kDTKOogjuHDeE2xzaHlkFxM2KsCp2bcPKtReccQl2RAjkZH3sqhWl1Qi6l-Vi84aa6et6zMAE0QOgc-lNr-S_STr-4Bbqwe5wszYh0zBMQ4eOT_To6D7kRZr8WH4mypD2wGrqCYMoCwJH-1LMXAcJc2nKJQc51J0EOxl6NptQ_MxENDwoRHZ33sXzn2PB0X9gid2Sr_iTc_AsYrUbB5Sq0DyHsT7Z1YQecRhLlcmSeaqRn5S_ypYpwriZ2w_"/>
+</div>
+<div>
+<h3 class="font-headline font-bold text-white tracking-tight">Smart Money Cluster</h3>
+<p class="text-xs text-gray-500 uppercase font-headline">1 Hour Ago</p>
+</div>
+</div>
+<p class="text-sm text-on-surface-variant leading-relaxed">
+              High-tier institutional wallets re-balancing holdings. Trend favors <span class="text-white font-bold">L2 Ecosystems</span>.
+            </p>
+<div class="pt-4 flex items-center justify-between">
+<span class="text-[#CCFF00] font-headline text-sm font-bold">+82 CONFIDENCE</span>
+<button class="text-xs font-headline uppercase tracking-widest text-gray-400 hover:text-white transition-colors">Observe →</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Bento Analytics Section -->
+<section class="grid grid-cols-1 md:grid-cols-4 grid-rows-2 gap-6 h-auto md:h-[600px]">
+<div class="md:col-span-2 md:row-span-2 rounded-lg bg-surface-container-low overflow-hidden relative group">
+<img class="w-full h-full object-cover opacity-30 group-hover:scale-110 transition-transform duration-1000" data-alt="detailed financial candlestick chart with neon green highlights on dark mode UI" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBEqEmB0rUMVB9JsumRRKE_vTjnGrOZ0SHevBO9sGNT1Fws4AsSoaByTGLkx2vOzdBvjSunyeKdTnsfAVlCa_wQtXD6PMg1IfShUtj9SvQCi3QiHMlhe-8uZpY6DiZggP5_NRsMPtmHFkop39r2A46JC0yWF5AZdoIxE4orGwk3mQFCpE8GqhO0MWDOPr4kTk7atUeElyCDaTSllVCTqzsGp56QeV7eAkqdI0C3O_Sa1A3H1zLqelj_SeApgUR-eBYj99BWLfZppG9L"/>
+<div class="absolute inset-0 p-8 flex flex-col justify-between">
+<div class="space-y-1">
+<span class="font-headline text-[10px] uppercase tracking-widest text-[#CCFF00]">Master View</span>
+<h3 class="text-3xl font-headline font-bold">MARKET_MOMENTUM</h3>
+</div>
+<div class="glass-panel p-4 rounded border border-white/5 inline-block self-start">
+<p class="font-headline text-xl font-bold text-white">BULLISH PHASE</p>
+<p class="text-xs text-gray-400 uppercase">Confirmed via 12 indicators</p>
+</div>
+</div>
+</div>
+<div class="md:col-span-2 rounded-lg bg-surface-container-low p-8 flex flex-col justify-between border border-white/5">
+<div class="flex justify-between items-start">
+<h3 class="text-xl font-headline font-bold tracking-tight">Active Nodes</h3>
+<span class="material-symbols-outlined text-[#CCFF00]" data-icon="sensors">sensors</span>
+</div>
+<div class="flex gap-4 items-end overflow-hidden">
+<div class="w-12 bg-[#CCFF00]/20 h-24 rounded-t-sm"></div>
+<div class="w-12 bg-[#CCFF00]/40 h-32 rounded-t-sm"></div>
+<div class="w-12 bg-[#CCFF00]/60 h-28 rounded-t-sm"></div>
+<div class="w-12 bg-[#CCFF00] h-40 rounded-t-sm shadow-[0_0_15px_rgba(204,255,0,0.4)]"></div>
+<div class="w-12 bg-[#CCFF00]/30 h-16 rounded-t-sm"></div>
+<div class="w-12 bg-[#CCFF00]/50 h-36 rounded-t-sm"></div>
+</div>
+</div>
+<div class="rounded-lg bg-surface-container-low p-6 border border-white/5">
+<span class="text-xs font-headline text-gray-500 uppercase tracking-widest mb-4 block">Risk Factor</span>
+<div class="text-4xl font-bold font-headline">0.24</div>
+<div class="mt-4 h-1 w-full bg-white/10 rounded-full overflow-hidden">
+<div class="h-full w-1/4 bg-[#CCFF00]"></div>
+</div>
+</div>
+<div class="rounded-lg bg-surface-container-low p-6 border border-white/5">
+<span class="text-xs font-headline text-gray-500 uppercase tracking-widest mb-4 block">Engine Status</span>
+<div class="flex items-center gap-2">
+<span class="text-xl font-bold font-headline text-white">OPTIMIZED</span>
+</div>
+<div class="mt-4 flex gap-1">
+<div class="w-1.5 h-1.5 bg-[#CCFF00] rounded-full"></div>
+<div class="w-1.5 h-1.5 bg-[#CCFF00] rounded-full"></div>
+<div class="w-1.5 h-1.5 bg-[#CCFF00] rounded-full"></div>
+<div class="w-1.5 h-1.5 bg-white/10 rounded-full"></div>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar Execution -->
+<div class="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex gap-8 px-10 py-4 items-center justify-center bg-[#0e0e0e]/80 backdrop-blur-2xl rounded-full border border-white/5 shadow-[0_20px_50px_rgba(0,0,0,0.8)]">
+<a class="relative flex items-center justify-center text-[#CCFF00] after:content-[''] after:absolute after:w-2 after:h-2 after:bg-[#CCFF00] after:rounded-full after:blur-sm after:animate-pulse hover:text-white transition-colors duration-300" href="#">
+<span class="material-symbols-outlined text-2xl" data-icon="dashboard">dashboard</span>
+</a>
+<a class="flex items-center justify-center text-gray-600 hover:text-white transition-colors duration-300 active:scale-90 transition-transform cubic-bezier(0.34,1.56,0.64,1)" href="#">
+<span class="material-symbols-outlined text-2xl" data-icon="insights">insights</span>
+</a>
+<a class="flex items-center justify-center text-gray-600 hover:text-white transition-colors duration-300 active:scale-90 transition-transform cubic-bezier(0.34,1.56,0.64,1)" href="#">
+<span class="material-symbols-outlined text-2xl" data-icon="account_balance_wallet">account_balance_wallet</span>
+</a>
+<a class="flex items-center justify-center text-gray-600 hover:text-white transition-colors duration-300 active:scale-90 transition-transform cubic-bezier(0.34,1.56,0.64,1)" href="#">
+<span class="material-symbols-outlined text-2xl" data-icon="swap_horiz">swap_horiz</span>
+</a>
+<a class="flex items-center justify-center text-gray-600 hover:text-white transition-colors duration-300 active:scale-90 transition-transform cubic-bezier(0.34,1.56,0.64,1)" href="#">
+<span class="material-symbols-outlined text-2xl" data-icon="settings">settings</span>
+</a>
+</div>
+</body></html>

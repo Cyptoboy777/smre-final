@@ -1,11 +1,23 @@
-import { jsonNotImplemented } from "@/lib/server/route-response";
+import { jsonSuccess, handleRoute } from "@/lib/server/route-response";
+import { SodexRestClient } from "@/lib/server/sodex/rest-client";
+import { type SodexMarket } from "@/types/sodex";
 
 export const runtime = "nodejs";
 
-export async function GET() {
-  return jsonNotImplemented({
-    route: "/api/sodex/orders",
-    provider: "sodex",
-    message: "Phase 1 scaffold complete. Sodex orders query is deferred.",
+export async function GET(request: Request) {
+  return handleRoute(async () => {
+    const { searchParams } = new URL(request.url);
+    const market = (searchParams.get("market") as SodexMarket) || "spot";
+    const symbol = searchParams.get("symbol") || undefined;
+    const limit = parseInt(searchParams.get("limit") || "20");
+
+    const client = new SodexRestClient(market);
+    const orders = await client.getOrders(symbol, limit);
+
+    return jsonSuccess({
+      market,
+      orders,
+    });
   });
 }
+

@@ -2,60 +2,77 @@
 
 @layer base {
   :root {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 5.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 180 100% 50%; /* Neon Cyan */
-    --primary-foreground: 180 100% 10%;
-    --secondary: 270 100% 60%; /* Neon Purple */
-    --secondary-foreground: 270 100% 10%;
-    --accent: 142 100% 50%; /* Neon Green */
-    --accent-foreground: 142 100% 10%;
-    --destructive: 0 100% 50%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 180 100% 50%;
-    --radius: 0.75rem;
+    --background: #0b0e11;
+    --foreground: #f8f9fe;
+    --primary: #ccff00;
+    --primary-dim: #f3ffca;
+    --secondary: #d277ff;
+    --tertiary: #00eefc;
+    --surface: #161a1e;
+    --surface-container: #22262b;
+    --outline: #737679;
+    --radius: 0.25rem;
   }
 }
 
 @layer base {
   * {
-    border-color: hsl(240 3.7% 15.9%);
+    border-color: rgba(255, 255, 255, 0.1);
   }
   body {
-    background-color: #000000;
-    color: hsl(0 0% 98%);
-    font-family: ui-sans-serif, system-ui, sans-serif;
-    background-image: 
-      radial-gradient(circle at 50% 0%, rgba(0, 243, 255, 0.05), transparent 40%),
-      radial-gradient(circle at 100% 100%, rgba(255, 0, 236, 0.03), transparent 30%);
-    background-attachment: fixed;
+    background-color: var(--background);
+    color: var(--foreground);
+    @apply font-sans antialiased;
   }
   ::selection {
-    background-color: hsl(180 100% 50%);
-    color: #000;
+    background-color: var(--primary);
+    @apply text-black;
   }
 }
 
-.glass-panel {
-  @apply bg-white/[0.03] backdrop-blur-md border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.36)];
+/* Prototype Specific Utilities */
+@layer components {
+  .glass-panel {
+    background: rgba(22, 26, 30, 0.7);
+    backdrop-filter: blur(24px);
+    @apply border border-white/10 shadow-2xl;
+  }
+  
+  .neon-border {
+    @apply border-[#ccff00]/30 shadow-[0_0_15px_rgba(204,255,0,0.1)];
+  }
+
+  .glow-text-primary {
+    text-shadow: 0 0 10px rgba(204, 255, 0, 0.4);
+  }
+
+  .glow-text-secondary {
+    text-shadow: 0 0 10px rgba(210, 119, 255, 0.4);
+  }
+
+  .scanline {
+    background: linear-gradient(
+      to bottom,
+      transparent 50%,
+      rgba(204, 255, 0, 0.02) 50%
+    );
+    background-size: 100% 4px;
+    pointer-events: none;
+  }
+
+  .cinematic-vignette {
+    background: radial-gradient(circle at center, transparent 0%, rgba(11, 14, 17, 0.8) 100%);
+  }
+
+  .kinetic-gradient {
+    background: linear-gradient(135deg, #f3ffca 0%, #cafd00 100%);
+  }
 }
 
-.neon-glow-cyan {
-  @apply drop-shadow-[0_0_8px_rgba(0,243,255,0.8)];
-}
-
-.neon-glow-purple {
-  @apply drop-shadow-[0_0_8px_rgba(255,0,236,0.8)];
-}
-
-.neon-glow-green {
-  @apply drop-shadow-[0_0_8px_rgba(0,255,163,0.8)];
+/* Material Symbols Utility */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  vertical-align: middle;
 }
 
 .custom-scrollbar::-webkit-scrollbar {
@@ -67,52 +84,24 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  @apply bg-white/10 rounded-full hover:bg-white/20 transition-colors;
+  @apply bg-white/10 rounded-full hover:bg-white/20 transition-all;
 }
 
-@keyframes typing {
-  from { width: 0 }
-  to { width: 100% }
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
 }
 
-@keyframes blink {
-  50% { border-color: transparent }
+.shimmer-anim {
+  animation: shimmer 2s infinite;
 }
 
-@keyframes price-flash-up {
-  0% {
-    color: #ffffff;
-    text-shadow: none;
-  }
-  28% {
-    color: #7cf7c1;
-    text-shadow: 0 0 14px rgba(0, 255, 163, 0.45);
-  }
-  100% {
-    color: #ffffff;
-    text-shadow: none;
-  }
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
 }
 
-@keyframes price-flash-down {
-  0% {
-    color: #ffffff;
-    text-shadow: none;
-  }
-  28% {
-    color: #ff8f8f;
-    text-shadow: 0 0 14px rgba(255, 89, 89, 0.45);
-  }
-  100% {
-    color: #ffffff;
-    text-shadow: none;
-  }
+.animate-pulse-soft {
+  animation: pulse-soft 3s ease-in-out infinite;
 }
 
-.price-flash-up {
-  animation: price-flash-up 0.7s ease-out;
-}
-
-.price-flash-down {
-  animation: price-flash-down 0.7s ease-out;
-}

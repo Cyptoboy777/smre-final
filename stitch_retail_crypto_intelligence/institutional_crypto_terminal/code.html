@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>VAULT_TERMINAL | Secure Access</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Inter:wght@300;400;500;600;700&amp;family=JetBrains+Mono:wght@400;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-secondary-container": "#f3cfff",
+                    "on-primary-fixed": "#3a4a00",
+                    "secondary-container": "#7d01b1",
+                    "primary-fixed-dim": "#beee00",
+                    "inverse-primary": "#516700",
+                    "surface-container-highest": "#22262b",
+                    "primary": "#f3ffca",
+                    "surface-dim": "#0b0e11",
+                    "error-dim": "#d53d18",
+                    "surface": "#0b0e11",
+                    "primary-container": "#cafd00",
+                    "on-tertiary": "#005d63",
+                    "on-error-container": "#ffd2c8",
+                    "secondary-dim": "#d277ff",
+                    "outline-variant": "#45484c",
+                    "primary-dim": "#beee00",
+                    "tertiary": "#8ff5ff",
+                    "on-secondary": "#380052",
+                    "on-surface": "#f8f9fe",
+                    "on-primary-fixed-variant": "#526900",
+                    "tertiary-dim": "#00deec",
+                    "surface-container-high": "#1c2024",
+                    "secondary": "#d277ff",
+                    "on-surface-variant": "#a9abaf",
+                    "on-primary": "#516700",
+                    "surface-variant": "#22262b",
+                    "error-container": "#b92902",
+                    "on-tertiary-container": "#005359",
+                    "on-background": "#f8f9fe",
+                    "on-error": "#450900",
+                    "on-secondary-fixed": "#56007c",
+                    "background": "#0b0e11",
+                    "on-secondary-fixed-variant": "#800ab4",
+                    "outline": "#737679",
+                    "tertiary-fixed": "#00eefc",
+                    "on-tertiary-fixed": "#003f43",
+                    "primary-fixed": "#cafd00",
+                    "error": "#ff7351",
+                    "tertiary-fixed-dim": "#00deec",
+                    "on-tertiary-fixed-variant": "#005e64",
+                    "secondary-fixed-dim": "#e7afff",
+                    "surface-container-lowest": "#000000",
+                    "surface-bright": "#282d31",
+                    "surface-container": "#161a1e",
+                    "on-primary-container": "#4a5e00",
+                    "inverse-surface": "#f8f9fe",
+                    "surface-tint": "#f3ffca",
+                    "surface-container-low": "#101417",
+                    "tertiary-container": "#00eefc",
+                    "secondary-fixed": "#eec2ff",
+                    "inverse-on-surface": "#535559"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "fontFamily": {
+                    "headline": ["Space Grotesk"],
+                    "body": ["Inter"],
+                    "label": ["Inter"],
+                    "mono": ["JetBrains Mono"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .data-vault-bg {
+            background-image: 
+                radial-gradient(circle at 2px 2px, rgba(204, 255, 0, 0.05) 1px, transparent 0);
+            background-size: 40px 40px;
+        }
+        .scanline {
+            background: linear-gradient(to bottom, transparent 50%, rgba(204, 255, 0, 0.02) 50%);
+            background-size: 100% 4px;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface font-body selection:bg-primary selection:text-on-primary min-h-screen flex flex-col items-center justify-center relative overflow-hidden">
+<!-- Background Elements -->
+<div class="absolute inset-0 data-vault-bg z-0 opacity-40"></div>
+<div class="absolute inset-0 scanline z-1 pointer-events-none"></div>
+<div class="absolute top-0 left-0 w-full h-1 bg-primary/20 z-10 shadow-[0_0_15px_rgba(204,255,0,0.3)]"></div>
+<!-- Kinetic Grid Ornament -->
+<div class="absolute -top-24 -right-24 w-96 h-96 border border-primary/5 rounded-full z-0 opacity-20"></div>
+<div class="absolute -bottom-48 -left-24 w-[600px] h-[600px] border border-secondary/5 rounded-full z-0 opacity-10"></div>
+<!-- Main Navigation/TopBar (Suppressing Full Nav for Transactional focus as per Rules) -->
+<header class="fixed top-0 w-full z-50 flex justify-between items-center px-6 h-14 bg-[#0b0e11]">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[#ccff00]" data-icon="terminal">terminal</span>
+<span class="font-['Space_Grotesk'] tracking-widest text-xl font-bold text-[#ccff00] uppercase">VAULT_TERMINAL</span>
+</div>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-[#a9abaf] hover:text-[#ccff00] cursor-pointer transition-colors" data-icon="settings_ethernet">settings_ethernet</span>
+</div>
+</header>
+<!-- Content Canvas -->
+<main class="relative z-10 w-full max-w-md px-6">
+<!-- Login Card -->
+<div class="bg-surface-container border border-outline-variant/15 p-8 shadow-[24px_0_48px_rgba(0,0,0,0.5)] backdrop-blur-md">
+<!-- Branding/Status -->
+<div class="mb-10 text-center">
+<div class="inline-flex items-center gap-2 px-3 py-1 bg-surface-container-high border border-outline-variant/20 mb-6">
+<span class="w-2 h-2 rounded-full bg-primary shadow-[0_0_8px_#ccff00]"></span>
+<span class="text-[10px] font-mono uppercase tracking-[0.2em] text-on-surface-variant">System Status: Active</span>
+</div>
+<h1 class="font-headline text-3xl font-bold tracking-tighter text-on-surface uppercase mb-2">Initialize Secure Link</h1>
+<p class="text-on-surface-variant text-sm font-label uppercase tracking-wider">Institutional Asset Terminal</p>
+</div>
+<!-- Security Badge -->
+<div class="flex items-center justify-center gap-3 mb-8 py-3 bg-secondary-container/10 border-x border-secondary-dim/30">
+<span class="material-symbols-outlined text-secondary-dim text-lg" data-icon="verified_user" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+<span class="font-mono text-[10px] text-secondary-dim uppercase tracking-widest">Secure EIP-712 Signing Active</span>
+</div>
+<!-- Primary Action -->
+<div class="space-y-4">
+<button class="w-full h-14 bg-gradient-to-br from-primary to-primary-container text-on-primary font-headline font-bold uppercase tracking-widest text-sm flex items-center justify-center gap-3 active:scale-95 transition-transform hover:shadow-[0_0_20px_rgba(204,255,0,0.2)]">
+<span class="material-symbols-outlined" data-icon="account_balance_wallet">account_balance_wallet</span>
+                    Connect Institutional Wallet
+                </button>
+<!-- Separator -->
+<div class="flex items-center gap-4 py-4">
+<div class="h-px flex-1 bg-outline-variant/20"></div>
+<span class="font-mono text-[10px] text-on-surface-variant uppercase">Or</span>
+<div class="h-px flex-1 bg-outline-variant/20"></div>
+</div>
+<!-- Auth Token Field -->
+<div class="space-y-2">
+<label class="font-mono text-[10px] text-on-surface-variant uppercase tracking-widest ml-1">API_AUTH_TOKEN</label>
+<div class="relative group">
+<input class="w-full h-12 bg-surface-container-lowest border border-outline-variant/30 text-primary font-mono text-xs px-4 focus:ring-1 focus:ring-primary/40 focus:border-primary/40 outline-none transition-all placeholder:text-outline-variant" placeholder="ENTER TERMINAL KEY..." type="password"/>
+<span class="absolute right-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline-variant group-focus-within:text-primary text-sm cursor-pointer" data-icon="vpn_key">vpn_key</span>
+</div>
+</div>
+<button class="w-full h-12 bg-surface-container-high text-on-surface font-label font-bold uppercase tracking-widest text-[11px] border border-outline-variant/20 hover:bg-surface-bright transition-colors active:opacity-80">
+                    Authorize via Token
+                </button>
+</div>
+<!-- Footer Links -->
+<div class="mt-12 space-y-4 text-center">
+<a class="inline-flex items-center gap-2 group" href="#">
+<span class="text-[10px] font-mono text-error uppercase tracking-widest border-b border-transparent group-hover:border-error transition-all">Whitelisted Access Only</span>
+<span class="material-symbols-outlined text-error text-xs" data-icon="lock">lock</span>
+</a>
+<div class="pt-6 border-t border-outline-variant/10">
+<p class="text-[9px] font-mono text-on-surface-variant leading-relaxed opacity-50 uppercase tracking-tighter">
+                        Warning: Unauthorized access to SOSO-SMRE Terminal is strictly prohibited. All connection attempts are logged via IP_TRACE_PROTOCOL.
+                    </p>
+</div>
+</div>
+</div>
+<!-- Telemetry Data Overlay (Aesthetic) -->
+<div class="mt-6 flex justify-between items-start font-mono text-[9px] text-on-surface-variant uppercase px-2">
+<div class="space-y-1">
+<div>NODE: TRD_MAIN_01</div>
+<div>LATENCY: 12ms</div>
+</div>
+<div class="text-right space-y-1">
+<div>UPTIME: 99.999%</div>
+<div>SIG_AUTH: EIP-712</div>
+</div>
+</div>
+</main>
+<!-- Navigation Shell Suppressed for Login Focus as per "The Destination Rule" -->
+</body></html>

@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Inter:wght@300;400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary-dim": "#00deec",
+                        "on-primary-fixed-variant": "#526900",
+                        "secondary-container": "#7d01b1",
+                        "on-surface-variant": "#a9abaf",
+                        "tertiary": "#8ff5ff",
+                        "surface-variant": "#22262b",
+                        "on-error": "#450900",
+                        "surface-container": "#161a1e",
+                        "surface-container-low": "#101417",
+                        "on-tertiary-fixed": "#003f43",
+                        "secondary": "#d277ff",
+                        "error-container": "#b92902",
+                        "primary": "#f3ffca",
+                        "primary-container": "#cafd00",
+                        "outline": "#737679",
+                        "tertiary-container": "#00eefc",
+                        "inverse-primary": "#516700",
+                        "on-secondary": "#380052",
+                        "secondary-dim": "#d277ff",
+                        "primary-fixed": "#cafd00",
+                        "error": "#ff7351",
+                        "on-background": "#f8f9fe",
+                        "secondary-fixed": "#eec2ff",
+                        "on-tertiary-container": "#005359",
+                        "inverse-surface": "#f8f9fe",
+                        "surface": "#0b0e11",
+                        "surface-dim": "#0b0e11",
+                        "tertiary-fixed-dim": "#00deec",
+                        "secondary-fixed-dim": "#e7afff",
+                        "surface-tint": "#f3ffca",
+                        "outline-variant": "#45484c",
+                        "error-dim": "#d53d18",
+                        "on-secondary-fixed": "#56007c",
+                        "on-tertiary-fixed-variant": "#005e64",
+                        "surface-container-highest": "#22262b",
+                        "on-primary": "#516700",
+                        "background": "#0b0e11",
+                        "surface-container-lowest": "#000000",
+                        "on-tertiary": "#005d63",
+                        "on-surface": "#f8f9fe",
+                        "surface-container-high": "#1c2024",
+                        "on-secondary-container": "#f3cfff",
+                        "surface-bright": "#282d31",
+                        "on-primary-container": "#4a5e00",
+                        "on-secondary-fixed-variant": "#800ab4",
+                        "tertiary-fixed": "#00eefc",
+                        "primary-fixed-dim": "#beee00",
+                        "on-primary-fixed": "#3a4a00",
+                        "primary-dim": "#beee00",
+                        "inverse-on-surface": "#535559",
+                        "on-error-container": "#ffd2c8"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Inter"],
+                        "label": ["Inter"],
+                        "mono": ["JetBrains Mono"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .radar-sweep {
+            background: conic-gradient(from 0deg at 50% 50%, transparent 0deg, rgba(204, 255, 0, 0.1) 60deg, rgba(204, 255, 0, 0.4) 120deg, transparent 121deg);
+            border-radius: 50%;
+        }
+        .radar-grid {
+            background-image: radial-gradient(circle, #45484c 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface font-body selection:bg-primary selection:text-on-primary">
+<!-- TopAppBar Shell -->
+<header class="flex justify-between items-center px-6 h-16 w-full fixed top-0 z-50 bg-[#0b0e11] dark:bg-[#0b0e11] shadow-[0px_24px_48px_rgba(0,0,0,0.5)]">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[#ccff00]" data-icon="hub">hub</span>
+<span class="text-xl font-bold tracking-tighter text-[#f3ffca] font-['Space_Grotesk']">soso-smre</span>
+</div>
+<div class="hidden md:flex items-center gap-8 text-[#a9abaf] font-mono text-sm">
+<span class="hover:text-[#ccff00] cursor-pointer transition-colors">BLOCK 19,482,001</span>
+<span class="hover:text-[#ccff00] cursor-pointer transition-colors">GAS 14 GWEI</span>
+<div class="bg-[#1c2024] px-3 py-1 rounded text-[#ccff00] border border-[#ccff00]/20">0x...4F2A</div>
+</div>
+<div class="md:hidden">
+<span class="material-symbols-outlined text-on-surface">menu</span>
+</div>
+</header>
+<main class="pt-20 pb-24 px-4 md:px-8 max-w-[1440px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
+<!-- Left Column: Radar & scanner -->
+<div class="lg:col-span-8 flex flex-col gap-6">
+<!-- Radar Visualization Section -->
+<section class="bg-surface-container rounded-lg p-6 relative overflow-hidden h-[400px] flex items-center justify-center border border-outline-variant/15">
+<div class="absolute inset-0 radar-grid opacity-20"></div>
+<!-- The Radar Graphic -->
+<div class="relative w-80 h-80 border border-outline-variant/30 rounded-full flex items-center justify-center">
+<div class="absolute w-60 h-60 border border-outline-variant/20 rounded-full"></div>
+<div class="absolute w-40 h-40 border border-outline-variant/20 rounded-full"></div>
+<div class="absolute w-20 h-20 border border-outline-variant/20 rounded-full"></div>
+<div class="absolute inset-0 radar-sweep"></div>
+<!-- Detected Blips -->
+<div class="absolute top-1/4 left-1/3 w-2 h-2 bg-primary rounded-full shadow-[0_0_8px_#ccff00]"></div>
+<div class="absolute bottom-1/3 right-1/4 w-3 h-3 bg-secondary rounded-full shadow-[0_0_12px_#d277ff]"></div>
+<div class="absolute top-1/2 right-1/2 w-2 h-2 bg-error rounded-full shadow-[0_0_8px_#ff7351]"></div>
+<div class="z-10 text-center">
+<span class="material-symbols-outlined text-primary text-4xl block" data-icon="radar">radar</span>
+<span class="text-[10px] font-mono uppercase tracking-[0.2em] text-on-surface-variant mt-2 block">Scanning Mainnet...</span>
+</div>
+</div>
+<div class="absolute bottom-4 left-6 flex items-center gap-4">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+<span class="text-[10px] font-mono text-on-surface-variant">WHALE MOVE</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span class="text-[10px] font-mono text-on-surface-variant">AI SIGNAL</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-error"></span>
+<span class="text-[10px] font-mono text-on-surface-variant">MALICIOUS</span>
+</div>
+</div>
+</section>
+<!-- Token Security Scanner Section -->
+<section class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="bg-surface-container rounded-lg p-6 border border-outline-variant/15 flex flex-col gap-6">
+<div class="flex justify-between items-start">
+<div>
+<h2 class="font-headline text-xl font-bold tracking-tight">Token Security Scanner</h2>
+<p class="text-xs text-on-surface-variant font-mono mt-1">CA: 0x71C7...7401</p>
+</div>
+<span class="bg-primary/10 text-primary px-2 py-1 text-[10px] font-bold rounded">SECURE</span>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-surface-container-low p-4 rounded border border-outline-variant/10">
+<span class="text-[10px] text-on-surface-variant block uppercase tracking-widest mb-1">Honeypot Status</span>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-sm" data-icon="check_circle">check_circle</span>
+<span class="font-mono text-sm font-bold">PASSED</span>
+</div>
+</div>
+<div class="bg-surface-container-low p-4 rounded border border-outline-variant/10">
+<span class="text-[10px] text-on-surface-variant block uppercase tracking-widest mb-1">Buy/Sell Tax</span>
+<div class="flex items-center gap-2 font-mono text-sm font-bold">
+                                0% / 0%
+                            </div>
+</div>
+<div class="bg-surface-container-low p-4 rounded border border-outline-variant/10">
+<span class="text-[10px] text-on-surface-variant block uppercase tracking-widest mb-1">Contract Status</span>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-sm" data-icon="verified">verified</span>
+<span class="font-mono text-sm font-bold">VERIFIED</span>
+</div>
+</div>
+<div class="bg-surface-container-low p-4 rounded border border-outline-variant/10">
+<span class="text-[10px] text-on-surface-variant block uppercase tracking-widest mb-1">Liquidity Lock</span>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-sm" data-icon="lock">lock</span>
+<span class="font-mono text-sm font-bold">365 DAYS</span>
+</div>
+</div>
+</div>
+</div>
+<div class="bg-surface-container rounded-lg p-6 border border-outline-variant/15 flex flex-col gap-4">
+<h3 class="font-headline text-lg font-bold">Quick Analysis</h3>
+<div class="flex flex-col gap-3">
+<div class="flex justify-between items-center text-sm font-mono border-b border-outline-variant/10 pb-2">
+<span class="text-on-surface-variant">Developer Wallet</span>
+<span class="text-primary">Clean</span>
+</div>
+<div class="flex justify-between items-center text-sm font-mono border-b border-outline-variant/10 pb-2">
+<span class="text-on-surface-variant">Top 10 Holders</span>
+<span>12.4% Supply</span>
+</div>
+<div class="flex justify-between items-center text-sm font-mono border-b border-outline-variant/10 pb-2">
+<span class="text-on-surface-variant">Max Wallet Size</span>
+<span>2.0% Supply</span>
+</div>
+<div class="flex justify-between items-center text-sm font-mono pb-1">
+<span class="text-on-surface-variant">Ownership Renounced</span>
+<span class="text-primary">Yes</span>
+</div>
+</div>
+<button class="mt-auto w-full py-3 bg-primary text-on-primary font-bold text-xs rounded uppercase tracking-widest hover:brightness-110 active:scale-[0.98] transition-all">
+                        Run Deep Audit
+                    </button>
+</div>
+</section>
+</div>
+<!-- Right Column: Whale Movements -->
+<aside class="lg:col-span-4 flex flex-col gap-6">
+<div class="bg-surface-container rounded-lg p-6 border border-outline-variant/15 flex flex-col h-full">
+<div class="flex items-center justify-between mb-6">
+<h2 class="font-headline text-xl font-bold tracking-tight">Whale Movements</h2>
+<span class="material-symbols-outlined text-secondary animate-pulse" data-icon="monitoring">monitoring</span>
+</div>
+<div class="flex flex-col gap-4 overflow-y-auto max-h-[600px] pr-2">
+<!-- Whale Item 1 -->
+<div class="bg-surface-container-low p-4 rounded-lg border-l-2 border-secondary flex flex-col gap-2 hover:bg-surface-container-high transition-colors cursor-pointer group">
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-2">
+<span class="bg-secondary/20 text-secondary-dim text-[10px] font-bold px-1.5 py-0.5 rounded">HUGE BUY</span>
+<span class="text-[10px] font-mono text-on-surface-variant">2m ago</span>
+</div>
+<span class="text-primary font-mono font-bold">$428,109</span>
+</div>
+<div class="text-sm font-medium">Whale 0x92f... purchased <span class="text-primary">$SO-RA</span></div>
+<div class="flex justify-between items-center mt-1">
+<span class="text-[10px] font-mono text-outline">Uniswap V3</span>
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-secondary text-sm" data-icon="open_in_new">open_in_new</span>
+</div>
+</div>
+<!-- Whale Item 2 -->
+<div class="bg-surface-container-low p-4 rounded-lg border-l-2 border-error flex flex-col gap-2 hover:bg-surface-container-high transition-colors cursor-pointer group">
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-2">
+<span class="bg-error/20 text-error text-[10px] font-bold px-1.5 py-0.5 rounded">DUMP ALERT</span>
+<span class="text-[10px] font-mono text-on-surface-variant">12m ago</span>
+</div>
+<span class="text-error font-mono font-bold">-$1,240,000</span>
+</div>
+<div class="text-sm font-medium">Binance Wallet moved funds to mixer</div>
+<div class="flex justify-between items-center mt-1">
+<span class="text-[10px] font-mono text-outline">Ethereum Mainnet</span>
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-error text-sm" data-icon="warning">warning</span>
+</div>
+</div>
+<!-- Whale Item 3 -->
+<div class="bg-surface-container-low p-4 rounded-lg border-l-2 border-primary flex flex-col gap-2 hover:bg-surface-container-high transition-colors cursor-pointer group">
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-2">
+<span class="bg-primary/20 text-primary-dim text-[10px] font-bold px-1.5 py-0.5 rounded">ACCUMULATING</span>
+<span class="text-[10px] font-mono text-on-surface-variant">25m ago</span>
+</div>
+<span class="text-primary font-mono font-bold">$89,200</span>
+</div>
+<div class="text-sm font-medium">Smart Money Wallet #04 adding <span class="text-primary">$ETH</span></div>
+<div class="flex justify-between items-center mt-1">
+<span class="text-[10px] font-mono text-outline">Lido Finance</span>
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary text-sm" data-icon="trending_up">trending_up</span>
+</div>
+</div>
+<!-- Whale Item 4 -->
+<div class="bg-surface-container-low p-4 rounded-lg border-l-2 border-secondary flex flex-col gap-2 hover:bg-surface-container-high transition-colors cursor-pointer group">
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-2">
+<span class="bg-secondary/20 text-secondary-dim text-[10px] font-bold px-1.5 py-0.5 rounded">NFT SWEEP</span>
+<span class="text-[10px] font-mono text-on-surface-variant">41m ago</span>
+</div>
+<span class="text-primary font-mono font-bold">$156,000</span>
+</div>
+<div class="text-sm font-medium">Azuki floor swept by 0xae2...</div>
+<div class="flex justify-between items-center mt-1">
+<span class="text-[10px] font-mono text-outline">Blur.io</span>
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-secondary text-sm" data-icon="palette">palette</span>
+</div>
+</div>
+</div>
+<div class="mt-auto pt-6">
+<div class="bg-surface-container-highest p-4 rounded-lg flex items-center justify-between">
+<div class="flex flex-col">
+<span class="text-[10px] font-mono text-on-surface-variant uppercase">Network Health</span>
+<span class="text-sm font-bold">Stable (High Load)</span>
+</div>
+<div class="w-12 h-12 flex items-center justify-center relative">
+<svg class="w-full h-full transform -rotate-90">
+<circle class="text-outline-variant/30" cx="24" cy="24" fill="transparent" r="20" stroke="currentColor" stroke-width="4"></circle>
+<circle class="text-primary" cx="24" cy="24" fill="transparent" r="20" stroke="currentColor" stroke-dasharray="125.6" stroke-dashoffset="30" stroke-width="4"></circle>
+</svg>
+<span class="absolute text-[8px] font-bold">75%</span>
+</div>
+</div>
+</div>
+</div>
+</aside>
+</main>
+<!-- BottomNavBar Shell -->
+<nav class="fixed bottom-0 w-full z-50 flex justify-around items-center h-20 pb-4 bg-[#0b0e11]/90 backdrop-blur-xl border-t border-[#45484c]/15">
+<div class="flex flex-col items-center justify-center text-[#a9abaf] py-1 px-3 hover:text-[#f8f9fe] active:opacity-80 transition-all cursor-pointer">
+<span class="material-symbols-outlined" data-icon="account_balance_wallet">account_balance_wallet</span>
+<span class="font-['Inter'] text-[10px] uppercase font-bold tracking-widest mt-1">Portfolio</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#a9abaf] py-1 px-3 hover:text-[#f8f9fe] active:opacity-80 transition-all cursor-pointer">
+<span class="material-symbols-outlined" data-icon="terminal">terminal</span>
+<span class="font-['Inter'] text-[10px] uppercase font-bold tracking-widest mt-1">Terminal</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#a9abaf] py-1 px-3 hover:text-[#f8f9fe] active:opacity-80 transition-all cursor-pointer">
+<span class="material-symbols-outlined" data-icon="psychology">psychology</span>
+<span class="font-['Inter'] text-[10px] uppercase font-bold tracking-widest mt-1">AI Deep Dive</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#ccff00] bg-[#ccff00]/10 rounded-lg py-1 px-3 shadow-[0_0_15px_rgba(204,255,0,0.3)] active:opacity-80 transition-all cursor-pointer">
+<span class="material-symbols-outlined" data-icon="radar" style="font-variation-settings: 'FILL' 1;">radar</span>
+<span class="font-['Inter'] text-[10px] uppercase font-bold tracking-widest mt-1">Radar</span>
+</div>
+</nav>
+</body></html>

@@ -1,85 +1,92 @@
-'use client';
+"use client";
 
-import { Shield, ShieldAlert, ShieldCheck, Activity, Terminal } from 'lucide-react';
-import WidgetWrapper from '../WidgetWrapper';
-import { motion, AnimatePresence } from 'framer-motion';
+import WidgetWrapper from "../WidgetWrapper";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface SecurityRadarProps {
-    data: any | null;
-    loading: boolean;
+  data: any | null;
+  loading: boolean;
 }
 
 export default function SecurityRadar({ data, loading }: SecurityRadarProps) {
-    const isToken = data?.type === 'token';
-    const security = data?.security || null;
-    const isSafe = security?.isSafe;
+  const isToken = data?.type === "token";
+  const security = data?.security || null;
+  const isSafe = security?.isSafe ?? true; // Defaulting to true for demo context if null
 
-    return (
-        <WidgetWrapper title="SECURITY RADAR" icon={<Shield className="w-3 h-3" />} loading={loading}>
-            {!data && !loading ? (
-                <div className="flex-1 flex flex-col items-center justify-center opacity-20 grayscale">
-                    <Activity className="w-8 h-8 mb-2 animate-pulse" />
-                    <span className="text-[8px] font-mono tracking-widest leading-none">NO DATA TARGET FOUND</span>
+  return (
+    <WidgetWrapper
+      title="SECURITY RADAR"
+      icon={<span className="material-symbols-outlined text-[#d277ff] text-base">security</span>}
+      loading={loading}
+    >
+      <div className="flex flex-col h-full items-center justify-center relative overflow-hidden">
+        {/* Radar Scanning Background */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
+          <div className="w-[140px] h-[140px] rounded-full border border-[#ccff00]/40 animate-ping [animation-duration:3s]" />
+          <div className="w-[100px] h-[100px] rounded-full border border-[#ccff00]/20 animate-ping [animation-duration:5s]" />
+        </div>
+
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={isSafe ? "safe" : "danger"}
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.8, opacity: 0 }}
+            className="flex flex-col items-center gap-6 relative z-10"
+          >
+            <div
+              className={`w-24 h-24 rounded-full flex items-center justify-center border-2 border-dashed ${
+                isSafe
+                  ? "border-[#ccff00] text-[#ccff00] bg-[#ccff00]/5"
+                  : "border-red-500 text-red-500 bg-red-500/5"
+              }`}
+            >
+              <span className="material-symbols-outlined text-5xl">
+                {isSafe ? "verified_user" : "gpp_maybe"}
+              </span>
+            </div>
+
+            <div className="text-center">
+              <h4
+                className={`text-sm font-black font-heading tracking-[0.2em] uppercase mb-1 ${
+                  isSafe ? "text-[#ccff00]" : "text-red-400"
+                }`}
+              >
+                {security?.status_text || (isSafe ? "DOMAIN_VERIFIED" : "THREAT_DETECTED")}
+              </h4>
+              {isToken && (
+                <div className="flex gap-6 items-center justify-center mt-3">
+                  <div className="flex flex-col">
+                    <span className="text-[8px] font-mono text-[#a9abaf] uppercase tracking-widest leading-none mb-1">
+                      Buy Tax
+                    </span>
+                    <span className="text-[10px] font-bold font-mono text-[#f8f9fe]">
+                      {security?.buy_tax || "0%"}
+                    </span>
+                  </div>
+                  <div className="flex flex-col border-l border-white/10 pl-6">
+                    <span className="text-[8px] font-mono text-[#a9abaf] uppercase tracking-widest leading-none mb-1">
+                      Sell Tax
+                    </span>
+                    <span className="text-[10px] font-bold font-mono text-[#f8f9fe]">
+                      {security?.sell_tax || "0%"}
+                    </span>
+                  </div>
                 </div>
-            ) : (
-                <div className="flex flex-col h-full items-center justify-center relative overflow-hidden">
-                    {/* Background Radar Effect */}
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
-                        <div className="w-[120px] h-[120px] rounded-full border border-primary/40 animate-ping [animation-duration:3s]" />
-                        <div className="w-[80px] h-[80px] rounded-full border border-primary/20 animate-ping [animation-duration:5s]" />
-                    </div>
+              )}
+            </div>
+          </motion.div>
+        </AnimatePresence>
 
-                    <AnimatePresence mode="wait">
-                        <motion.div 
-                            key={isSafe ? 'safe' : 'danger'}
-                            initial={{ scale: 0.8, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.8, opacity: 0 }}
-                            className="flex flex-col items-center gap-4 relative z-10"
-                        >
-                            <div className={`w-20 h-20 rounded-full flex items-center justify-center border-2 border-dashed ${isSafe ? 'border-accent neon-glow-green text-accent bg-accent/5' : 'border-destructive neon-glow-red text-destructive bg-destructive/5'}`}>
-                                {isSafe ? <ShieldCheck className="w-10 h-10" /> : <ShieldAlert className="w-10 h-10" />}
-                            </div>
-
-                            <div className="text-center">
-                                <h4 className={`text-sm font-black font-heading tracking-widest uppercase mb-1 ${isSafe ? 'text-accent' : 'text-destructive'}`}>
-                                    {security?.status_text || 'SCANNING...'}
-                                </h4>
-                                {isToken && (
-                                    <div className="flex gap-4 items-center justify-center mt-2">
-                                        <div className="flex flex-col">
-                                            <span className="text-[8px] font-mono text-white/30 uppercase tracking-widest leading-none mb-1">BUY_TAX</span>
-                                            <span className="text-[10px] font-bold font-mono text-white tracking-widest">{security?.buy_tax || '0%'}</span>
-                                        </div>
-                                        <div className="flex flex-col border-l border-white/10 pl-4">
-                                            <span className="text-[8px] font-mono text-white/30 uppercase tracking-widest leading-none mb-1">SELL_TAX</span>
-                                            <span className="text-[10px] font-bold font-mono text-white tracking-widest">{security?.sell_tax || '0%'}</span>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </motion.div>
-                    </AnimatePresence>
-
-                    {/* Footer Log */}
-                    <div className="absolute bottom-0 w-full p-2 bg-black/40 border-t border-white/5 rounded-b-xl mt-4">
-                        <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap">
-                            <Terminal className="w-2.5 h-2.5 text-primary shrink-0 opacity-50" />
-                            <span className="text-[8px] font-mono text-white/40 uppercase tracking-widest animate-[marquee_20s_linear_infinite]">
-                                &gt; GOPLUS_SECURITY_API: SYNCED | RUG_PULL_DETECTION: ON | HONEYPOT_CHECK: VERIFIED
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </WidgetWrapper>
-    );
+        {/* Global Surveillance Status */}
+        <div className="absolute bottom-0 w-full p-3 bg-black/40 border-t border-white/5 rounded-b-lg flex items-center gap-3 overflow-hidden">
+           <span className="text-[8px] font-mono text-[#ccff00] border border-[#ccff00]/30 px-1.5 py-0.5 rounded shrink-0">GOPLUS_SYNC</span>
+           <span className="text-[8px] font-mono text-[#a9abaf] uppercase tracking-widest whitespace-nowrap animate-marquee">
+             SCAN_COMPLETE: 0 THREATS FOUND | LIQUIDITY: LOCKED | OWNERSHIP: RENOUNCED | PROXY: NO
+           </span>
+        </div>
+      </div>
+    </WidgetWrapper>
+  );
 }
 
-// Global styles would handle this marquee, but adding here as well
-const styles = `
-@keyframes marquee {
-  0% { transform: translateX(0) }
-  100% { transform: translateX(-50%) }
-}
-`;

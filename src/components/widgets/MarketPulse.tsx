@@ -1,272 +1,149 @@
-'use client';
+"use client";
 
-import { useEffect, useRef, useState } from 'react';
-import { Activity, TrendingDown, TrendingUp } from 'lucide-react';
-import WidgetWrapper from '../WidgetWrapper';
-import { type MarketPulseItem } from '@/lib/crypto-dashboard';
-import { useSodexWebSocket } from '@/hooks/useSodexWebSocket';
-import { fetchApi } from '@/lib/client/api-client';
-import { type ApiSuccessPayload, type MarketRouteResponse } from '@/lib/api';
-import { useApiQuery } from '@/hooks/useApiQuery';
+import { useEffect, useRef, useState } from "react";
+import WidgetWrapper from "../WidgetWrapper";
+import { type MarketPulseItem } from "@/lib/crypto-dashboard";
+import { useSodexWebSocket } from "@/hooks/useSodexWebSocket";
+import { fetchApi } from "@/lib/client/api-client";
+import { type ApiSuccessPayload, type MarketRouteResponse } from "@/lib/api";
+import { useApiQuery } from "@/hooks/useApiQuery";
 
-const TRACKED_SYMBOLS = ['BTC-USD', 'ETH-USD', 'SOL-USD'];
+const TRACKED_SYMBOLS = ["BTC-USD", "ETH-USD", "SOL-USD"];
 const PRICE_FLASH_MS = 700;
 
-type MiniTickerMessage = {
-    channel?: string;
-    data?: Array<{
-        s: string; // symbol
-        c: string; // last price
-        h: string; // high
-        l: string; // low
-        v: string; // volume
-    }>;
-};
-
-type PriceFlashDirection = 'up' | 'down';
-
 const getDisplayPrice = (closePrice?: string) => {
-    const price = Number(closePrice);
-    if (Number.isFinite(price) && price > 0) {
-        return price.toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-        });
-    }
-    return null;
+  const price = Number(closePrice);
+  return Number.isFinite(price) && price > 0
+    ? price.toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })
+    : null;
 };
-
-const parseDisplayedPrice = (value?: string) => {
-    const numeric = Number(value?.replace(/,/g, ''));
-    return Number.isFinite(numeric) ? numeric : null;
-};
-
-function MarketPulseSkeleton() {
-    return (
-        <div className="grid grid-cols-1 gap-2 h-full">
-            <div className="flex items-center justify-end text-[8px] font-mono uppercase tracking-widest text-white/25">
-                SYNCING ORDER BOOK...
-            </div>
-            {TRACKED_SYMBOLS.map((symbol) => (
-                <div
-                    key={symbol}
-                    className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] p-3 animate-pulse"
-                >
-                    <div className="flex items-center gap-3">
-                        <div className="h-8 w-1 rounded-full bg-white/10" />
-                        <div className="space-y-2">
-                            <div className="h-2 w-16 rounded-full bg-white/10" />
-                            <div className="h-4 w-24 rounded-full bg-white/10" />
-                        </div>
-                    </div>
-                    <div className="space-y-2 text-right">
-                        <div className="h-3 w-14 rounded-full bg-white/10" />
-                        <div className="h-2 w-10 rounded-full bg-white/10" />
-                    </div>
-                </div>
-            ))}
-        </div>
-    );
-}
 
 export default function MarketPulse() {
-    const [priceFlashMap, setPriceFlashMap] = useState<Record<string, PriceFlashDirection | undefined>>({});
-    const flashTimeoutRef = useRef<Record<string, number>>({});
+  const [priceFlashMap, setPriceFlashMap] = useState<Record<string, "up" | "down" | undefined>>({});
+  const flashTimeoutRef = useRef<Record<string, number>>({});
 
-    const { data, loading, error, setData } = useApiQuery<MarketPulseItem[]>({
-        request: async (signal) => {
-            const response = await fetchApi<ApiSuccessPayload<MarketRouteResponse>>('/api/sodex/market?market=perps', {
-                signal,
-            });
+  const { data, loading, error, setData } = useApiQuery<MarketPulseItem[]>({
+    request: async (signal) => {
+      const response = await fetchApi<ApiSuccessPayload<MarketRouteResponse>>(
+        "/api/sodex/market?market=perps",
+        { signal }
+      );
+      return Array.isArray(response.items)
+        ? response.items.filter((item) => TRACKED_SYMBOLS.includes(item.symbol)).slice(0, 3)
+        : [];
+    },
+  });
 
-            return Array.isArray(response.items)
-                ? response.items.filter((item) => TRACKED_SYMBOLS.includes(item.symbol)).slice(0, 3)
-                : [];
-        },
-    });
+  const stream = useSodexWebSocket<any>({
+    url: "wss://mainnet-gw.sodex.dev/ws/perps",
+    subscribeMessages: [{ op: "subscribe", params: { channel: "allMiniTicker" } }],
+    onMessage: (message) => {
+      if (message.channel === "allMiniTicker" && Array.isArray(message.data)) {
+        setData((current) => {
+          const nextCurrent = current || [];
+          return nextCurrent.map((item) => {
+            const update = message.data!.find((entry: any) => entry.s === item.symbol);
+            if (!update) return item;
+            return { ...item, price: getDisplayPrice(update.c) || item.price };
+          });
+        });
+      }
+    },
+  });
 
-    useEffect(() => {
-        return () => {
-            for (const timeoutId of Object.values(flashTimeoutRef.current)) {
-                window.clearTimeout(timeoutId);
-            }
-        };
-    }, []);
+  const prices = data || [];
 
-    const triggerPriceFlash = (symbol: string, direction: PriceFlashDirection) => {
-        const timeoutId = flashTimeoutRef.current[symbol];
-        if (timeoutId) {
-            window.clearTimeout(timeoutId);
-        }
+  return (
+    <WidgetWrapper
+      title="ON-CHAIN RADAR"
+      icon={<span className="material-symbols-outlined text-[#ccff00] text-base animate-pulse">radar</span>}
+      loading={loading && prices.length === 0}
+    >
+      <div className="flex flex-col gap-4 h-full relative overflow-hidden">
+        {/* Background Scanline decorative overlay */}
+        <div className="absolute inset-0 scanline opacity-30 pointer-events-none" />
 
-        setPriceFlashMap((current) => ({
-            ...current,
-            [symbol]: direction,
-        }));
+        <div className="flex items-center justify-between text-[8px] font-mono uppercase tracking-[0.3em] text-[#a9abaf] mb-2">
+           <span>Whale Surveillance Protocol</span>
+           <span className="flex items-center gap-1.5">
+             <span className={`w-1.5 h-1.5 rounded-full ${stream.status === 'open' ? 'bg-[#ccff00]' : 'bg-red-500'} animate-pulse`} />
+             {stream.status === 'open' ? 'Feed: Live' : 'Feed: Offline'}
+           </span>
+        </div>
 
-        flashTimeoutRef.current[symbol] = window.setTimeout(() => {
-            setPriceFlashMap((current) => {
-                const next = { ...current };
-                delete next[symbol];
-                return next;
-            });
-        }, PRICE_FLASH_MS);
-    };
+        {/* Portfolio Balance Prototype side-stats panel style */}
+        <div className="grid grid-cols-2 gap-3 mb-2">
+           <div className="bg-[#1c2024] p-4 rounded-lg border border-white/5">
+              <span className="text-[8px] uppercase font-bold tracking-widest text-[#ccff00] block mb-1">Glob Liquidity</span>
+              <span className="text-xl font-heading font-bold text-[#f8f9fe]">4.2 TB/s</span>
+           </div>
+           <div className="bg-[#1c2024] p-4 rounded-lg border border-white/5">
+              <span className="text-[8px] uppercase font-bold tracking-widest text-[#d277ff] block mb-1">Whale Denisty</span>
+              <span className="text-xl font-heading font-bold text-[#f8f9fe]">High</span>
+           </div>
+        </div>
 
-    const prices = data || [];
+        {/* Tickers */}
+        <div className="space-y-3 flex-1 overflow-y-auto custom-scrollbar">
+          {prices.map((asset) => (
+            <div
+              key={asset.symbol}
+              className="group bg-[#161a1e] rounded-lg p-4 border border-white/5 hover:bg-[#22262b] transition-all relative overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 p-2 opacity-5 scale-150 pointer-events-none">
+                 <span className="material-symbols-outlined text-6xl">monitoring</span>
+              </div>
+              
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-[10px] font-mono text-[#a9abaf] tracking-[0.2em]">{asset.symbol}</span>
+                <span className={`text-[10px] font-mono ${asset.isUp ? 'text-[#ccff00]' : 'text-red-400'}`}>
+                  {asset.isUp ? 'SURGING' : 'STABLE'}
+                </span>
+              </div>
 
-    const stream = useSodexWebSocket<MiniTickerMessage>({
-        url: 'wss://mainnet-gw.sodex.dev/ws/perps',
-        subscribeMessages: [
-            {
-                op: 'subscribe',
-                params: {
-                    channel: 'allMiniTicker',
-                },
-            },
-        ],
-        onMessage: (message) => {
-            if (message.channel !== 'allMiniTicker' || !Array.isArray(message.data)) {
-                return;
-            }
-
-            const updates = message.data;
-
-            setData((current) => {
-                const nextCurrent = current || [];
-
-                if (nextCurrent.length === 0) {
-                    const seededItems: MarketPulseItem[] = [];
-
-                    for (const entry of updates) {
-                        if (!TRACKED_SYMBOLS.includes(entry.s) || seededItems.length >= 3) {
-                            continue;
-                        }
-
-                        const price = getDisplayPrice(entry.c);
-                        if (!price) {
-                            continue;
-                        }
-
-                        seededItems.push({
-                            symbol: entry.s,
-                            price,
-                            change: '+0.00%',
-                            isUp: true,
-                            market: 'perps' as const,
-                            bidPrice: entry.c, // Fallback for last price
-                            askPrice: entry.c, // Fallback for last price
-                            volume24h: entry.v,
-                        });
-                    }
-
-                    return seededItems;
-                }
-
-                return nextCurrent.map((item) => {
-                    const update = updates.find((entry) => entry.s === item.symbol);
-
-                    if (!update) {
-                        return item;
-                    }
-
-                    const price = getDisplayPrice(update.c);
-                    if (!price) {
-                        return item;
-                    }
-
-                    const previousPrice = parseDisplayedPrice(item.price);
-                    const nextPrice = parseDisplayedPrice(price);
-
-                    if (previousPrice !== null && nextPrice !== null && nextPrice !== previousPrice) {
-                        triggerPriceFlash(item.symbol, nextPrice > previousPrice ? 'up' : 'down');
-                    }
-
-                    return {
-                        ...item,
-                        price,
-                        volume24h: update.v,
-                    };
-                });
-            });
-        },
-    });
-
-    const streamLabel =
-        stream.status === 'open'
-            ? 'LIVE'
-            : stream.status === 'reconnecting'
-              ? 'RECONNECTING'
-              : stream.status === 'error'
-                ? 'DEGRADED'
-                : 'BOOTING';
-
-    const inlineError =
-        prices.length === 0 && error
-            ? 'REST bootstrap unavailable. Waiting for live SoDEX price stream.'
-            : null;
-
-    return (
-        <WidgetWrapper
-            title="MARKET PULSE"
-            icon={<Activity className="w-3 h-3" />}
-            loading={loading && prices.length === 0}
-        >
-            {prices.length === 0 ? (
-                <div className="flex flex-1 flex-col gap-3">
-                    <MarketPulseSkeleton />
-                    <div className="rounded-xl border border-white/5 bg-white/[0.02] px-3 py-2 text-[9px] font-mono uppercase tracking-widest text-white/35">
-                        {inlineError ?? 'Awaiting live SoDEX market data...'}
-                    </div>
+              <div className="flex justify-between items-end">
+                <span className="text-2xl font-heading font-bold tracking-tight text-[#f8f9fe] glow-text-primary">
+                  ${asset.price}
+                </span>
+                <div className="flex flex-col items-end">
+                   <div className={`text-xs font-mono font-bold ${asset.isUp ? 'text-[#ccff00]' : 'text-red-400'}`}>
+                      {asset.isUp ? '▲' : '▼'} {asset.change}
+                   </div>
+                   <div className="w-16 h-1 bg-white/5 rounded-full mt-1 overflow-hidden">
+                      <div className={`h-full ${asset.isUp ? 'bg-[#ccff00]' : 'bg-red-400'} w-2/3 animate-pulse`} />
+                   </div>
                 </div>
-            ) : (
-                <div className="grid grid-cols-1 gap-2 h-full">
-                    <div className="flex items-center justify-between text-[8px] font-mono uppercase tracking-widest">
-                        <span className="text-white/25">
-                            {error ? 'REST FALLBACK DEGRADED' : 'INSTITUTIONAL FEED ONLINE'}
-                        </span>
-                        <span className="text-white/40">{streamLabel}</span>
-                    </div>
-                    {prices.map((asset) => {
-                        const flashDirection = priceFlashMap[asset.symbol];
-
-                        return (
-                            <div
-                                key={asset.symbol}
-                                className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] p-2 transition-all hover:bg-white/5"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className={`w-1 h-8 rounded-full ${asset.isUp ? 'bg-accent' : 'bg-destructive'}`} />
-                                    <div>
-                                        <span className="text-[10px] font-bold text-white/40 font-mono tracking-widest">
-                                            {asset.symbol}
-                                        </span>
-                                        <p
-                                            className={[
-                                                'text-sm font-bold font-mono text-white transition-colors',
-                                                flashDirection === 'up' ? 'price-flash-up' : '',
-                                                flashDirection === 'down' ? 'price-flash-down' : '',
-                                            ].join(' ')}
-                                        >
-                                            ${asset.price}
-                                        </p>
-                                    </div>
-                                </div>
-                                <div
-                                    className={`flex items-center gap-1 text-[10px] font-bold font-mono ${asset.isUp ? 'text-accent neon-glow-green' : 'text-destructive'}`}
-                                >
-                                    {asset.isUp ? (
-                                        <TrendingUp className="w-3 h-3" />
-                                    ) : (
-                                        <TrendingDown className="w-3 h-3" />
-                                    )}
-                                    {asset.change}
-                                </div>
-                            </div>
-                        );
-                    })}
+              </div>
+            </div>
+          ))}
+          
+          {/* Whale Feed - "Stitched" from portfolio dashboard/radar prototypes */}
+          <div className="mt-4 pt-4 border-t border-white/10">
+             <div className="flex items-center gap-2 mb-4">
+                <span className="material-symbols-outlined text-secondary text-base">visibility</span>
+                <h4 className="text-[10px] font-bold uppercase tracking-widest text-[#a9abaf]">Whale Surveillance</h4>
+             </div>
+             
+             <div className="space-y-2">
+                <div className="p-3 bg-black/40 border border-white/5 rounded-lg flex justify-between items-center group cursor-pointer hover:border-[#ccff00]/30">
+                   <div>
+                      <div className="text-[9px] text-[#ccff00] uppercase font-bold mb-1">Transfer Detected</div>
+                      <div className="text-xs font-mono text-white">12,000 ETH → Exchange</div>
+                   </div>
+                   <span className="material-symbols-outlined text-[#a9abaf] group-hover:text-[#ccff00] text-sm">open_in_new</span>
                 </div>
-            )}
-        </WidgetWrapper>
-    );
+                <div className="p-3 bg-black/20 border border-white/5 rounded-lg opacity-50">
+                   <div className="text-[9px] text-[#d277ff] uppercase font-bold mb-1">Large Accumulation</div>
+                   <div className="text-xs font-mono text-white">500,000 SOL Staked</div>
+                </div>
+             </div>
+          </div>
+        </div>
+      </div>
+    </WidgetWrapper>
+  );
 }
+

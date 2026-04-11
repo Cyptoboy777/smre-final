@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>NEON_TERMINAL | Institutional Trading</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Manrope:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-error-container": "#ffd2c8",
+                      "inverse-primary": "#516700",
+                      "surface-bright": "#2c2c2c",
+                      "on-primary-fixed-variant": "#526900",
+                      "tertiary-dim": "#ebebeb",
+                      "on-secondary-fixed-variant": "#5c5b5b",
+                      "primary-fixed": "#cafd00",
+                      "secondary-fixed": "#e5e2e1",
+                      "on-primary": "#516700",
+                      "surface-container-lowest": "#000000",
+                      "outline-variant": "#494847",
+                      "surface-tint": "#f3ffca",
+                      "tertiary-fixed": "#ffffff",
+                      "error-container": "#b92902",
+                      "inverse-on-surface": "#565554",
+                      "on-secondary": "#525151",
+                      "error-dim": "#d53d18",
+                      "on-tertiary-container": "#555757",
+                      "background": "#0e0e0e",
+                      "on-surface-variant": "#adaaaa",
+                      "tertiary-fixed-dim": "#f0f1f1",
+                      "secondary-fixed-dim": "#d6d4d3",
+                      "on-error": "#450900",
+                      "outline": "#777575",
+                      "surface-container": "#1a1919",
+                      "tertiary-container": "#ebebeb",
+                      "surface-container-high": "#201f1f",
+                      "on-secondary-fixed": "#403f3f",
+                      "secondary": "#e5e2e1",
+                      "secondary-container": "#474746",
+                      "primary-fixed-dim": "#beee00",
+                      "tertiary": "#f9f9f9",
+                      "on-surface": "#ffffff",
+                      "on-tertiary": "#5e5f60",
+                      "on-primary-fixed": "#3a4a00",
+                      "surface-container-low": "#131313",
+                      "primary": "#f3ffca",
+                      "on-tertiary-fixed-variant": "#6c6d6e",
+                      "on-secondary-container": "#d2d0cf",
+                      "inverse-surface": "#fcf8f8",
+                      "error": "#ff7351",
+                      "primary-dim": "#beee00",
+                      "secondary-dim": "#d6d4d3",
+                      "surface": "#0e0e0e",
+                      "on-background": "#ffffff",
+                      "on-tertiary-fixed": "#4f5051",
+                      "primary-container": "#cafd00",
+                      "on-primary-container": "#4a5e00",
+                      "surface-variant": "#262626",
+                      "surface-container-highest": "#262626",
+                      "surface-dim": "#0e0e0e"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "fontFamily": {
+                      "headline": ["Space Grotesk"],
+                      "body": ["Manrope"],
+                      "label": ["Space Grotesk"]
+              }
+            },
+          },
+        }
+    </script>
+<style>
+        body {
+            background-color: #0e0e0e;
+            color: #ffffff;
+            font-family: 'Manrope', sans-serif;
+            overflow-x: hidden;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .obsidian-glass {
+            background: rgba(14, 14, 14, 0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .neon-pulse {
+            animation: pulse-neon 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse-neon {
+            0%, 100% { opacity: 1; filter: drop-shadow(0 0 2px #CCFF00); }
+            50% { opacity: 0.5; filter: drop-shadow(0 0 8px #CCFF00); }
+        }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #262626; border-radius: 2px; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-[#0e0e0e]/60 backdrop-blur-xl flex justify-between items-center px-8 h-20 w-full shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-[#CCFF00] text-2xl">terminal</span>
+<h1 class="text-2xl font-bold tracking-widest text-[#CCFF00] drop-shadow-[0_0_8px_rgba(204,255,0,0.4)] font-['Space_Grotesk'] tracking-tighter uppercase">NEON_TERMINAL</h1>
+</div>
+<nav class="hidden md:flex items-center gap-8 font-['Space_Grotesk'] uppercase text-sm tracking-widest">
+<a class="text-[#CCFF00] border-b-2 border-[#CCFF00] transition-all duration-500 py-1" href="#">MARKETS</a>
+<a class="text-gray-500 hover:text-[#CCFF00] transition-all duration-500 py-1" href="#">ANALYTICS</a>
+<a class="text-gray-500 hover:text-[#CCFF00] transition-all duration-500 py-1" href="#">PORTFOLIO</a>
+<a class="text-gray-500 hover:text-[#CCFF00] transition-all duration-500 py-1" href="#">HISTORY</a>
+</nav>
+<div class="flex items-center gap-4">
+<div class="flex flex-col items-end mr-4 hidden lg:flex">
+<span class="text-[10px] text-gray-500 font-headline tracking-widest uppercase">Connectivity</span>
+<div class="flex items-center gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-[#CCFF00] neon-pulse"></span>
+<span class="text-xs font-headline font-bold text-on-surface">MAINNET_NODE_04</span>
+</div>
+</div>
+<img alt="Profile" class="w-10 h-10 rounded-full border border-white/10" data-alt="User profile avatar with obsidian finish and sharp cinematic studio lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCYDSboVm-7seqHDrwWpufSszQfn2fH9Qr9ynahE4d0tR1GkBj540d9RkyPdmduKd5JLpvAehnzUN06xjwjiC6jkCdg4nJf6Dj2--2vlcmrhfqEid244LyEzHNRfWc4jv1ML6o5_KdxQNOv8Nt9sSMWhuGrmDrDLxJF25vgg_N4dYKwBJZ_cLQQFPtT3U4WdCeA-iKbF8xAfOiJNJyEBGbgG984g6m2wteAqKBLfUWFm8aL3z-iY_zkzUXEQBIruvZrBPWi_Um8Ywsx"/>
+</div>
+<div class="bg-gradient-to-b from-[#CCFF00]/5 to-transparent h-[1px] w-full absolute bottom-0"></div>
+</header>
+<main class="pt-24 pb-32 px-6 lg:px-12 grid grid-cols-12 gap-6 min-h-screen">
+<!-- Left Column: AI Conviction & Asset Info -->
+<div class="col-span-12 lg:col-span-3 flex flex-col gap-6">
+<!-- Asset Header -->
+<div class="bg-surface-container-low p-6 rounded-lg border-l-2 border-[#CCFF00]">
+<div class="flex justify-between items-start mb-4">
+<div>
+<h2 class="text-3xl font-headline font-bold tracking-tight">BTC / USDC</h2>
+<p class="text-xs text-on-surface-variant font-headline tracking-widest uppercase">Spot Perpetual</p>
+</div>
+<span class="text-xl font-headline font-bold text-primary-fixed-dim">$67,492.12</span>
+</div>
+<div class="flex gap-2">
+<span class="px-2 py-0.5 bg-[#CCFF00]/10 text-[#CCFF00] text-[10px] font-bold rounded uppercase">Vol: 1.2B</span>
+<span class="px-2 py-0.5 bg-error/10 text-error text-[10px] font-bold rounded uppercase">24h: -0.42%</span>
+</div>
+</div>
+<!-- Groq AI Conviction Meter -->
+<div class="bg-surface-container-low p-6 rounded-lg relative overflow-hidden group">
+<div class="absolute top-0 right-0 p-4">
+<span class="material-symbols-outlined text-white/20 group-hover:text-primary-container transition-colors">psychology</span>
+</div>
+<h3 class="text-xs font-headline font-bold tracking-widest text-gray-500 uppercase mb-6">Groq_AI Conviction</h3>
+<div class="relative h-40 flex items-center justify-center">
+<!-- Semi-circle Gauge -->
+<svg class="w-48 h-24 -rotate-180" viewbox="0 0 100 50">
+<path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#262626" stroke-width="8"></path>
+<path class="drop-shadow-[0_0_8px_rgba(204,255,0,0.6)]" d="M 10 50 A 40 40 0 0 1 75 20" fill="none" stroke="#CCFF00" stroke-dasharray="100" stroke-width="8"></path>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center pt-8">
+<span class="text-4xl font-headline font-bold text-white tracking-tighter">84.2</span>
+<span class="text-[10px] text-[#CCFF00] font-bold tracking-widest uppercase">Bullish Bias</span>
+</div>
+</div>
+<div class="mt-4 space-y-3">
+<div class="flex justify-between text-[10px] font-headline uppercase tracking-wider">
+<span class="text-gray-500">Liquidity Depth</span>
+<span class="text-on-surface">Optimal</span>
+</div>
+<div class="w-full bg-white/5 h-1 rounded-full">
+<div class="bg-[#CCFF00] h-full rounded-full w-4/5"></div>
+</div>
+<div class="flex justify-between text-[10px] font-headline uppercase tracking-wider">
+<span class="text-gray-500">Sentiment Velocity</span>
+<span class="text-on-surface">Accelerating</span>
+</div>
+<div class="w-full bg-white/5 h-1 rounded-full">
+<div class="bg-primary-dim h-full rounded-full w-3/5"></div>
+</div>
+</div>
+<div class="mt-6 pt-4 border-t border-white/5">
+<p class="text-[11px] leading-relaxed text-on-surface-variant font-medium">
+<span class="text-[#CCFF00]">AGENT_LOG:</span> Order block at $67.2k holding. Whale accumulation detected in perpetual markets. Execution recommended on signal flip.
+                    </p>
+</div>
+</div>
+<!-- News/Feed -->
+<div class="bg-surface-container-low p-4 rounded-lg flex-1">
+<h3 class="text-xs font-headline font-bold tracking-widest text-gray-500 uppercase mb-4">Market_Pulse</h3>
+<div class="space-y-4">
+<div class="border-l border-white/10 pl-3">
+<span class="text-[9px] text-[#CCFF00] font-bold">14:22:01</span>
+<p class="text-xs font-medium line-clamp-2">SEC files new brief regarding institutional custody rules.</p>
+</div>
+<div class="border-l border-white/10 pl-3 opacity-60">
+<span class="text-[9px] text-gray-500 font-bold">14:18:45</span>
+<p class="text-xs font-medium line-clamp-2">Whale alert: 5,000 BTC moved from unknown wallet to Coinbase.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Center Column: Main Chart & Depth -->
+<div class="col-span-12 lg:col-span-6 flex flex-col gap-6">
+<!-- Chart Area -->
+<div class="bg-surface-container-low rounded-lg p-1 flex-1 relative min-h-[450px]">
+<div class="absolute top-6 left-6 z-10 flex gap-4">
+<div class="bg-[#0e0e0e]/80 backdrop-blur px-3 py-1 rounded border border-white/5 flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-error animate-pulse"></span>
+<span class="text-[10px] font-headline font-bold tracking-widest uppercase">Live_Stream</span>
+</div>
+</div>
+<div class="w-full h-full rounded-lg overflow-hidden relative">
+<img alt="Market Chart" class="w-full h-full object-cover opacity-60 grayscale brightness-50" data-alt="Technical financial candlestick chart with neon green and red indicators on a dark professional trading interface background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBcrh6ZhH9biXGRDiWmzi3t8kCfKpJ2XIqFrAF8MqDfUzCXpN1Q3PDEPQFXeU50QOlnAdhvNHitfIKmBYYG8ZZvVHg9_3ecYJY1BAwI-69ChgBeLj1fuydnnK6KYX1CCIbzIbYsCwuqmskwKHTC-fr3mbDDxiPmA4LxxhSMOmEF6BtJrwj2oKyUkrfHgh9-iHMhgmalmPDpgxfGwV-Guj35JK8E45vjn7Sw1Jcmkv9sP36yWfKVu0SpnzRajoDIQIF3dn9wy9rYu_Fh"/>
+<!-- Decorative Overlay Grid -->
+<div class="absolute inset-0 pointer-events-none opacity-20" style="background-image: radial-gradient(#CCFF00 0.5px, transparent 0.5px); background-size: 30px 30px;"></div>
+<!-- Price Label floating -->
+<div class="absolute top-1/2 right-10 bg-surface-container-highest px-2 py-1 rounded border border-[#CCFF00]/30">
+<span class="text-xs font-headline font-bold text-[#CCFF00]">67,492.12</span>
+</div>
+</div>
+<div class="mt-4 flex gap-2 justify-center pb-4">
+<button class="px-4 py-1.5 bg-surface-variant rounded text-[10px] font-bold uppercase tracking-widest hover:bg-surface-bright transition-colors">1m</button>
+<button class="px-4 py-1.5 bg-surface-variant rounded text-[10px] font-bold uppercase tracking-widest hover:bg-surface-bright transition-colors">5m</button>
+<button class="px-4 py-1.5 bg-primary-container text-on-primary-container rounded text-[10px] font-bold uppercase tracking-widest">15m</button>
+<button class="px-4 py-1.5 bg-surface-variant rounded text-[10px] font-bold uppercase tracking-widest hover:bg-surface-bright transition-colors">1h</button>
+<button class="px-4 py-1.5 bg-surface-variant rounded text-[10px] font-bold uppercase tracking-widest hover:bg-surface-bright transition-colors">4h</button>
+<button class="px-4 py-1.5 bg-surface-variant rounded text-[10px] font-bold uppercase tracking-widest hover:bg-surface-bright transition-colors">Indicator</button>
+</div>
+</div>
+<!-- High-Density Bento Info -->
+<div class="grid grid-cols-3 gap-6">
+<div class="bg-surface-container-low p-4 rounded-lg">
+<span class="text-[9px] text-gray-500 font-headline uppercase tracking-widest">Open Interest</span>
+<p class="text-lg font-headline font-bold mt-1 text-white">$42.8M</p>
+<span class="text-[10px] text-[#CCFF00]">+2.1% (5m)</span>
+</div>
+<div class="bg-surface-container-low p-4 rounded-lg">
+<span class="text-[9px] text-gray-500 font-headline uppercase tracking-widest">Funding Rate</span>
+<p class="text-lg font-headline font-bold mt-1 text-white">0.0104%</p>
+<span class="text-[10px] text-gray-500">Next: 04:22:15</span>
+</div>
+<div class="bg-surface-container-low p-4 rounded-lg">
+<span class="text-[9px] text-gray-500 font-headline uppercase tracking-widest">Network Load</span>
+<p class="text-lg font-headline font-bold mt-1 text-white">12ms</p>
+<span class="text-[10px] text-[#CCFF00]">Stable</span>
+</div>
+</div>
+</div>
+<!-- Right Column: Orderbook & Execution -->
+<div class="col-span-12 lg:col-span-3 flex flex-col gap-6">
+<!-- Real-time Order Book -->
+<div class="bg-surface-container-low rounded-lg flex flex-col h-[400px]">
+<div class="p-4 border-b border-white/5 flex justify-between items-center">
+<h3 class="text-xs font-headline font-bold tracking-widest uppercase">Order_Book</h3>
+<span class="text-[10px] text-gray-500">Prec: 0.1</span>
+</div>
+<div class="flex-1 overflow-hidden p-2">
+<!-- Asks -->
+<div class="space-y-0.5">
+<div class="grid grid-cols-2 text-[10px] text-error/80 font-mono relative">
+<div class="absolute inset-0 bg-error/5 w-[30%] right-0"></div>
+<span>67,512.50</span>
+<span class="text-right z-10">0.421</span>
+</div>
+<div class="grid grid-cols-2 text-[10px] text-error/80 font-mono relative">
+<div class="absolute inset-0 bg-error/5 w-[65%] right-0"></div>
+<span>67,510.00</span>
+<span class="text-right z-10">1.102</span>
+</div>
+<div class="grid grid-cols-2 text-[10px] text-error/80 font-mono relative">
+<div class="absolute inset-0 bg-error/5 w-[15%] right-0"></div>
+<span>67,508.20</span>
+<span class="text-right z-10">0.054</span>
+</div>
+</div>
+<!-- Spread -->
+<div class="my-3 text-center border-y border-white/5 py-1">
+<span class="text-sm font-headline font-bold text-white">67,492.12</span>
+</div>
+<!-- Bids -->
+<div class="space-y-0.5">
+<div class="grid grid-cols-2 text-[10px] text-[#CCFF00]/80 font-mono relative">
+<div class="absolute inset-0 bg-[#CCFF00]/5 w-[85%] left-0"></div>
+<span>67,488.00</span>
+<span class="text-right z-10">2.441</span>
+</div>
+<div class="grid grid-cols-2 text-[10px] text-[#CCFF00]/80 font-mono relative">
+<div class="absolute inset-0 bg-[#CCFF00]/5 w-[40%] left-0"></div>
+<span>67,485.50</span>
+<span class="text-right z-10">0.912</span>
+</div>
+<div class="grid grid-cols-2 text-[10px] text-[#CCFF00]/80 font-mono relative">
+<div class="absolute inset-0 bg-[#CCFF00]/5 w-[20%] left-0"></div>
+<span>67,482.10</span>
+<span class="text-right z-10">0.231</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Execution Panel -->
+<div class="bg-surface-container rounded-lg p-6 flex flex-col gap-5 border border-white/5">
+<div class="flex gap-2 p-1 bg-background rounded">
+<button class="flex-1 py-2 rounded text-[11px] font-bold uppercase tracking-widest bg-primary-container text-on-primary-container">Limit</button>
+<button class="flex-1 py-2 rounded text-[11px] font-bold uppercase tracking-widest text-gray-500 hover:text-white">Market</button>
+<button class="flex-1 py-2 rounded text-[11px] font-bold uppercase tracking-widest text-gray-500 hover:text-white">Stop</button>
+</div>
+<div class="space-y-4">
+<div class="space-y-1">
+<label class="text-[9px] uppercase tracking-widest text-gray-500 font-headline">Price USDC</label>
+<div class="relative">
+<input class="w-full bg-background border-none border-b border-white/10 focus:ring-0 focus:border-[#CCFF00] text-sm font-headline text-white py-2" type="text" value="67,492.12"/>
+</div>
+</div>
+<div class="space-y-1">
+<label class="text-[9px] uppercase tracking-widest text-gray-500 font-headline">Size BTC</label>
+<div class="relative">
+<input class="w-full bg-background border-none border-b border-white/10 focus:ring-0 focus:border-[#CCFF00] text-sm font-headline text-white py-2" placeholder="0.00" type="text"/>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-3 pt-4">
+<!-- Obsidian Textured Button -->
+<button class="w-full py-4 bg-[#CCFF00] text-[#0e0e0e] font-headline font-bold uppercase tracking-[0.2em] rounded shadow-[0_0_20px_rgba(204,255,0,0.3)] hover:scale-[1.02] active:scale-[0.98] transition-all">
+                        Execute_Long
+                    </button>
+<button class="w-full py-4 bg-surface-variant text-white font-headline font-bold uppercase tracking-[0.2em] rounded border border-white/5 hover:bg-surface-bright transition-all">
+                        Short_Position
+                    </button>
+</div>
+<!-- EIP-712 Status -->
+<div class="mt-4 flex items-center justify-between p-3 bg-background/50 rounded border border-white/5">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-xs text-[#CCFF00] neon-pulse" style="font-variation-settings: 'FILL' 1;">security</span>
+<span class="text-[10px] font-headline uppercase tracking-widest text-gray-400">EIP-712 Signing</span>
+</div>
+<span class="text-[10px] font-bold text-[#CCFF00]">ACTIVE</span>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex gap-8 px-10 py-4 items-center justify-center bg-[#0e0e0e]/80 backdrop-blur-2xl rounded-full border border-white/5 shadow-[0_20px_50px_rgba(0,0,0,0.8)]">
+<div class="relative flex items-center justify-center text-[#CCFF00] after:content-[''] after:absolute after:w-2 after:h-2 after:bg-[#CCFF00] after:rounded-full after:blur-sm after:animate-pulse">
+<span class="material-symbols-outlined cursor-pointer hover:text-white transition-colors duration-300" data-icon="dashboard">dashboard</span>
+</div>
+<div class="flex items-center justify-center text-gray-600 hover:text-white transition-colors duration-300 active:scale-90 transition-transform cubic-bezier(0.34,1.56,0.64,1)">
+<span class="material-symbols-outlined cursor-pointer" data-icon="insights">insights</span>
+</div>
+<div class="flex items-center justify-center text-gray-600 hover:text-white transition-colors duration-300 active:scale-90 transition-transform cubic-bezier(0.34,1.56,0.64,1)">
+<span class="material-symbols-outlined cursor-pointer" data-icon="account_balance_wallet">account_balance_wallet</span>
+</div>
+<div class="flex items-center justify-center text-gray-600 hover:text-white transition-colors duration-300 active:scale-90 transition-transform cubic-bezier(0.34,1.56,0.64,1)">
+<span class="material-symbols-outlined cursor-pointer" data-icon="swap_horiz">swap_horiz</span>
+</div>
+<div class="flex items-center justify-center text-gray-600 hover:text-white transition-colors duration-300 active:scale-90 transition-transform cubic-bezier(0.34,1.56,0.64,1)">
+<span class="material-symbols-outlined cursor-pointer" data-icon="settings">settings</span>
+</div>
+</nav>
+<!-- UI Backdrop Decorations -->
+<div class="fixed top-0 left-0 w-full h-full pointer-events-none -z-10 overflow-hidden">
+<div class="absolute top-[-10%] right-[-5%] w-[40%] h-[40%] bg-[#CCFF00]/5 blur-[120px] rounded-full"></div>
+<div class="absolute bottom-[-10%] left-[-5%] w-[40%] h-[40%] bg-error/5 blur-[120px] rounded-full"></div>
+</div>
+</body></html>
